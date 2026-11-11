@@ -17,7 +17,10 @@ const image = { data: 'data:image/webp;base64,UklGRiQAAABXRUJQ', width: 100, hei
 const review = { cardId: 'c1', deckId: 'd1', rating: 'good', at: now }
 
 beforeAll(async () => {
-  const rules = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8').replace('REPLACE_WITH_YOUR_UID', 'me')
+  const source = readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8')
+  const rules = source.replaceAll('REPLACE_WITH_YOUR_UID', 'me')
+  // Guard: the allow-list must really be swapped, or "denied" tests would pass for the wrong reason.
+  if (!rules.includes("request.auth.uid == 'me'")) throw new Error('UID placeholder not found in firestore.rules')
   env = await initializeTestEnvironment({ projectId: 'demo-orezdeck', firestore: { rules } })
 })
 afterAll(() => env?.cleanup())
