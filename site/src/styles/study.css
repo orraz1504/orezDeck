@@ -1061,3 +1061,65 @@ math-field.math-editor__field::part(menu-toggle) {
   color: var(--accent);
   font-weight: 600;
 }
+
+/* Card and its buttons sit together, centred in the screen (buttons right under the card). */
+.study__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding-bottom: calc(16px + var(--safe-bottom));
+}
+
+.study__body--top {
+  justify-content: flex-start;
+}
+
+.study__body .study__stage {
+  flex: none;
+  padding-bottom: 0;
+}
+
+.study__body--top .study__stage {
+  padding-top: 8px;
+}
+
+.study__body .study__actions {
+  position: static;
+  background: none;
+  padding: 14px 16px 0;
+  min-height: 80px; /* same height for "show answer" and the ratings, so the card doesn't jump */
+}
+
+.flip-stage--tap {
+  cursor: pointer;
+  -webkit-user-select: text;
+  user-select: text;
+  outline: none;
+}
+
+@media (min-width: 960px) {
+  .study__body .study__actions {
+    padding: 16px 16px 0;
+  }
+
+  .study__body {
+    padding-bottom: 8px;
+  }
+}
+
+.preview-sides {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* Previews are smaller than the study card */
+.preview-sides .study-card {
+  padding: 20px;
+  gap: 14px;
+}
+
+.preview-sides .study-card--min {
+  min-height: 0;
+}

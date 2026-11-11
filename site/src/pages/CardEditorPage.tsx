@@ -41,7 +41,6 @@ function CardEditor() {
   const [tags, setTags] = useState<string[]>(existing?.tags ?? [])
   const [group, setGroup] = useState(existing?.group ?? '')
   const [variants, setVariants] = useState<ProblemVariant[]>(existing?.variants ?? [emptyVariant()])
-  const [previewSide, setPreviewSide] = useState<'q' | 'a'>('q')
   const [previewVariant, setPreviewVariant] = useState(0)
   const [busy, setBusy] = useState(false)
 
@@ -80,7 +79,6 @@ function CardEditor() {
         setBack('')
         setText('')
         setVariants([emptyVariant()])
-        setPreviewSide('q')
         showToast('הכרטיס נשמר')
       } else {
         navigate(`/deck/${dest}`)
@@ -120,30 +118,36 @@ function CardEditor() {
   }
   const pv = variants[Math.min(previewVariant, variants.length - 1)]
 
+  const pvIndex = Math.min(previewVariant, variants.length - 1)
   const preview = (
     <>
-      <div className="row" style={{ justifyContent: 'space-between', gap: 12 }}>
-        <span className="preview-label" style={{ fontWeight: 600, color: 'var(--ink)' }}>
-          תצוגה מקדימה
-        </span>
-        <Segmented
-          size="sm"
-          value={previewSide}
-          onChange={setPreviewSide}
-          options={[
-            { value: 'q', label: 'שאלה' },
-            { value: 'a', label: 'תשובה' },
-          ]}
-        />
-      </div>
-      {type === 'problem' ? (
-        <div className="stack" style={{ gap: 12 }}>
-          <ProblemPrompt card={previewCard} variant={pv} variantIndex={Math.min(previewVariant, variants.length - 1)} />
-          {previewSide === 'a' && <ProblemSteps variant={pv} shown={pv.steps.length} />}
+      <span className="preview-label" style={{ fontWeight: 600, color: 'var(--ink)' }}>
+        תצוגה מקדימה
+      </span>
+      <div className="preview-sides">
+        <div className="stack" style={{ gap: 6 }}>
+          <span className="preview-label">צד שאלה</span>
+          {type === 'problem' ? (
+            <ProblemPrompt card={previewCard} variant={pv} variantIndex={pvIndex} />
+          ) : (
+            <CardFace card={previewCard} revealed={false} />
+          )}
         </div>
-      ) : (
-        <CardFace card={previewCard} revealed={previewSide === 'a'} />
-      )}
+        <div className="stack" style={{ gap: 6 }}>
+          <span className="preview-label">צד תשובה</span>
+          {type === 'problem' ? (
+            pv.steps.some((st) => st.title || st.body) ? (
+              <ProblemSteps variant={pv} shown={pv.steps.length} />
+            ) : (
+              <div className="faint" style={{ fontSize: 13 }}>
+                עוד אין שלבי פתרון
+              </div>
+            )
+          ) : (
+            <CardFace card={previewCard} revealed />
+          )}
+        </div>
+      </div>
       {type === 'cloze' && clozeNums.length > 1 && (
         <div className="faint" style={{ fontSize: 12.5 }}>
           ייווצרו {clozeNums.length} כרטיסים, אחד לכל השלמה. התצוגה מציגה את c{clozeNums[0]}.

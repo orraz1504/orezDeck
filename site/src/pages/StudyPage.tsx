@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MouseEvent as ReactMouseEvent } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { CardFace, ProblemPrompt, ProblemSteps } from '../components/CardFace'
 import { Icon } from '../components/Icon'
@@ -81,6 +81,8 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
   /** Half-way through the flip animation (question turning away). */
   const [flipping, setFlipping] = useState(false)
   const flipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  /** 'flip' after turning the card over, 'enter' when a new card appears. */
+  const [entry, setEntry] = useState<'enter' | 'flip'>('enter')
   useEffect(() => () => {
     if (flipTimer.current) clearTimeout(flipTimer.current)
   }, [])
@@ -139,22 +141,35 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
     [cards, plan.round, deck.lastRoundEndedAt, deckId, mode, size, startedAt, navigate],
   )
 
+  /** Animated flip: the visible face turns away, then the other side turns in. */
+  const turnTo = useCallback(
+    (side: boolean) => {
+      if (flipping) return
+      setEntry('flip')
+      if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return setRevealed(side)
+      setFlipping(true)
+      flipTimer.current = setTimeout(() => {
+        setFlipping(false)
+        setRevealed(side)
+      }, 150)
+    },
+    [flipping],
+  )
+
+  /** Tap on the card: flip it over (both directions). Ignores text selection and links. */
+  const onCardTap = (e: ReactMouseEvent) => {
+    if ((e.target as HTMLElement).closest('a, button, input, textarea')) return
+    if (window.getSelection()?.toString()) return
+    turnTo(!revealed)
+  }
+
   const reveal = useCallback(() => {
     if (variant) {
       const next = Math.min(totalSteps, stepsShown + 1)
       setStepsShown(next)
       if (next >= totalSteps) setRevealed(true)
-    } else if (!flipping) {
-      // Turn the question away, then show the answer turning in.
-      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-      if (reduce) return setRevealed(true)
-      setFlipping(true)
-      flipTimer.current = setTimeout(() => {
-        setFlipping(false)
-        setRevealed(true)
-      }, 150)
-    }
-  }, [variant, totalSteps, stepsShown, flipping])
+    } else turnTo(true)
+  }, [variant, totalSteps, stepsShown, turnTo])
 
   const revealAll = () => {
     setStepsShown(totalSteps)
@@ -177,6 +192,7 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
 
       const next = rateCurrent({ ...session, queue }, r, current.type)
       setRevealed(false)
+      setEntry('enter')
       setStepsShown(0)
       if (next.queue.length === 0) finish(next)
       else setSession(next)
@@ -241,15 +257,22 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
         </div>
       </div>
 
-      <div className={`study__stage ${variant ? 'study__stage--top' : ''} ${wide ? 'study__stage--wide' : ''}`}>
+      <div className={`study__body ${variant ? 'study__body--top' : ''}`}>
+      <div className={`study__stage ${wide ? 'study__stage--wide' : ''}`}>
         {variant ? (
           <div className="problem-grid">
             <ProblemPrompt card={current} variant={variant} variantIndex={variantIndex} />
             {stepsShown > 0 && <ProblemSteps variant={variant} shown={stepsShown} />}
           </div>
         ) : (
-          <div className="flip-stage">
-            <div key={`${current.id}:${revealed}`} className={revealed ? 'flip-in' : flipping ? 'flip-out' : 'card-enter'}>
+          <div
+            className="flip-stage flip-stage--tap"
+            role="button"
+            tabIndex={-1}
+            aria-label={revealed ? 'הפוך חזרה לשאלה' : 'הפוך לתשובה'}
+            onClick={onCardTap}
+          >
+            <div key={`${current.id}:${revealed}`} className={flipping ? 'flip-out' : entry === 'flip' ? 'flip-in' : 'card-enter'}>
               <CardFace card={current} revealed={revealed} />
             </div>
           </div>
@@ -274,6 +297,7 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
           </Button>
         )}
       </div>
+      </div>
 
       <div className="study__keys">
         {revealed ? (
@@ -286,9 +310,12 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
             ))}
           </>
         ) : (
-          <span>
-            <Kbd>Space</Kbd> {variant ? 'השלב הבא' : 'הצג תשובה'}
-          </span>
+          <>
+            <span>
+              <Kbd>Space</Kbd> {variant ? 'השלב הבא' : 'הצג תשובה'}
+            </span>
+            {!variant && <span>או לחיצה על הכרטיס</span>}
+          </>
         )}
       </div>
     </div>
