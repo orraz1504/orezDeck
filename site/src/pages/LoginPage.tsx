@@ -57,6 +57,26 @@ function FloatingCards() {
   )
 }
 
+/** Human-readable reason for common Firebase Auth setup problems. */
+function describeAuthError(e: unknown): string {
+  const code = (e as { code?: string })?.code ?? ''
+  const msg = (e as { message?: string })?.message ?? String(e)
+  const host = window.location.hostname
+  let hint = 'הכניסה נכשלה. נסה שוב.'
+  if (code === 'auth/unauthorized-domain') {
+    hint = `הדומיין ${host} לא מורשה. הוסף אותו ב-Firebase → Authentication → Settings → Authorized domains.`
+  } else if (code === 'auth/operation-not-allowed') {
+    hint = 'הכניסה עם Google לא מופעלת. Firebase → Authentication → Sign-in method → Google → Enable.'
+  } else if (code.includes('requests-from-referer') || code.includes('api-key') || /referer|API key/i.test(msg)) {
+    hint = 'מפתח ה-API חוסם את האתר. ב-Google Cloud → Credentials בדוק את הגבלות ה-Websites של ה-Browser key.'
+  } else if (code === 'auth/network-request-failed') {
+    hint = 'אין חיבור לרשת, או שחוסם פרסומות חוסם את Google. נסה שוב.'
+  } else if (code === 'auth/popup-blocked') {
+    hint = 'הדפדפן חסם את חלון הכניסה. אפשר חלונות קופצים לאתר ונסה שוב.'
+  }
+  return code ? `${hint} (${code})` : `${hint} (${msg.slice(0, 120)})`
+}
+
 export function LoginPage() {
   const navigate = useNavigate()
   const [busy, setBusy] = useState(false)
@@ -71,7 +91,7 @@ export function LoginPage() {
       await signInWithGoogle()
       navigate('/', { replace: true })
     } catch (e) {
-      setError('הכניסה נכשלה. נסה שוב.')
+      setError(describeAuthError(e))
       console.error(e)
     } finally {
       setBusy(false)
@@ -93,7 +113,11 @@ export function LoginPage() {
                 Firebase עוד לא מוגדר. הדבק את ה-config בקובץ <code dir="ltr">src/firebase.ts</code> (הוראות ב-README).
               </div>
             )}
-            {error && <div style={{ color: 'var(--again)', fontSize: 14 }}>{error}</div>}
+            {error && (
+              <div style={{ color: 'var(--again)', fontSize: 14, lineHeight: 1.6 }} dir="auto">
+                {error}
+              </div>
+            )}
             <div className="login__fine">הכניסה עם חשבון Google בלבד</div>
           </div>
         </div>
