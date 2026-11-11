@@ -11,6 +11,8 @@
 5. **Authorized domains:** ‏Authentication → Settings → Authorized domains → Add domain, ומוסיפים `<username>.github.io` (שם המשתמש שלך ב-GitHub). ‏`localhost` כבר מופיע שם.
 6. **ה-config:** גלגל השיניים → Project settings → General → Your apps → סמל `</>` (Web). נותנים שם, **בלי** Firebase Hosting. מעתיקים רק את הבלוק `const firebaseConfig = { … }` ומחליפים בו את הבלוק שב-[`src/firebase.ts`](src/firebase.ts). את שורות ה-`import` של Firebase לא מעתיקים.
 
+**רק החשבון שלך:** ב-`firestore.rules` יש רשימת מיילים מורשים (`ALLOWED_EMAILS`). ה-repo ציבורי, ולכן בקובץ שבו יש placeholder (`you@example.com`). מחליפים אותו במייל שלך **רק בעותק שמדביקים בקונסול**. חשבונות אחרים יכולים להשלים כניסה עם Google, אבל לא לקרוא או לכתוב כלום, ויראו מסך "החשבון הזה לא מורשה". אם בעתיד משתפים את האפליקציה עם עוד מישהו, מוסיפים את המייל שלו לרשימה: `['a@gmail.com', 'b@gmail.com']`.
+
 ה-config של Firebase ציבורי מטבעו, ואפשר לשמור אותו בקוד. מה שמגן על הנתונים הוא ה-Security Rules: כל משתמש קורא וכותב רק תחת `users/{uid}` שלו.
 
 ## פריסה ל-GitHub Pages

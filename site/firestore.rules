@@ -5,10 +5,21 @@ rules_version = '2';
 //   users/{uid}/images/{imageId}
 //   users/{uid}/reviews/{id}
 // Everything else is denied by default.
+//
+// Allow-list: only the Google accounts in ALLOWED_EMAILS can use the app.
+// Anyone can complete a Google sign-in, but other accounts can't read or write.
+// The repo is public, so keep real emails out of this file: replace the
+// placeholder only in the copy you paste into Firebase console → Firestore → Rules.
 service cloud.firestore {
   match /databases/{database}/documents {
+    function isAllowed() {
+      return request.auth != null
+        && request.auth.token.email_verified == true
+        && request.auth.token.email.lower() in ['you@example.com'];  // ALLOWED_EMAILS
+    }
+
     function isOwner(uid) {
-      return request.auth != null && request.auth.uid == uid;
+      return isAllowed() && request.auth.uid == uid;
     }
 
     match /users/{uid} {
