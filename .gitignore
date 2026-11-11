@@ -1,2 +1,16 @@
 .DS_Store
 node_modules/
+
+# Secrets / local env (the Firebase web config in src/firebase.ts is public and fine)
+.env
+.env.*
+*.pem
+*service-account*.json
+
+# Firebase emulators and CLI
+.firebase/
+firebase-debug*.log
+firestore-debug.log
+ui-debug.log
+emulator-data/
+*-debug.log

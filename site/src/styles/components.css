@@ -907,3 +907,36 @@ button.list__row:hover {
   box-shadow: var(--shadow-pop);
   animation: rise 0.2s ease;
 }
+
+/* ───────────────────────── Sync banner ───────────────────────── */
+
+.sync-banner {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  background: var(--surface2);
+  color: var(--ink2);
+  border-bottom: 1px solid var(--line);
+}
+
+.sync-banner span {
+  flex: 1;
+}
+
+.sync-banner--error {
+  background: var(--again-soft);
+  color: var(--again);
+}
+
+.sync-banner button {
+  font-size: 20px;
+  line-height: 1;
+  padding: 4px 8px;
+  color: inherit;
+}

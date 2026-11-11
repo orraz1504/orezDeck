@@ -10,3 +10,15 @@ describe('image helpers', () => {
     expect(dataUrlBytes('data:image/webp;base64,' + 'A'.repeat(400))).toBe(300)
   })
 })
+
+import { checkImageFile } from './image'
+describe('image file checks', () => {
+  it('accepts raster formats only', () => {
+    expect(checkImageFile({ type: 'image/png', size: 1000 })).toBeNull()
+    expect(checkImageFile({ type: 'image/svg+xml', size: 1000 })).toMatch(/PNG/)
+    expect(checkImageFile({ type: 'image/heic', size: 1000 })).toMatch(/PNG/)
+  })
+  it('refuses files over 20MB', () => {
+    expect(checkImageFile({ type: 'image/jpeg', size: 21 * 1024 * 1024 })).toMatch(/20MB/)
+  })
+})

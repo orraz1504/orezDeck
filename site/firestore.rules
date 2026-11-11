@@ -1,59 +1,111 @@
 rules_version = '2';
 
-// Each signed-in user can read and write only their own subtree:
-//   users/{uid}/decks/{deckId}/cards/{cardId}
-//   users/{uid}/images/{imageId}
-//   users/{uid}/reviews/{id}
-// Everything else is denied by default.
+// Kartisiyot Orez: only one account, and only under users/{uid}. Everything else is denied.
 //
-// Allow-list: only the Google accounts in ALLOWED_EMAILS can use the app.
-// Anyone can complete a Google sign-in, but other accounts can't read or write.
-// The repo is public, so keep real emails out of this file: replace the
-// placeholder only in the copy you paste into Firebase console → Firestore → Rules.
+// The repo is public, so this file keeps a placeholder. Replace REPLACE_WITH_YOUR_UID with
+// your UID (Firebase console → Authentication → Users → User UID) ONLY in the copy you paste
+// into Firebase console → Firestore Database → Rules. Tests: npm run test:rules (see README).
 service cloud.firestore {
   match /databases/{database}/documents {
-    function isAllowed() {
+
+    // ===== The only account allowed to use the app =====
+    function isMe(uid) {
       return request.auth != null
-        && request.auth.token.email_verified == true
-        && request.auth.token.email.lower() in ['you@example.com'];  // ALLOWED_EMAILS
+        && request.auth.uid == 'REPLACE_WITH_YOUR_UID'
+        && request.auth.uid == uid;
     }
 
-    function isOwner(uid) {
-      return isAllowed() && request.auth.uid == uid;
+    // ===== Helpers =====
+    function str(v, max) { return v is string && v.size() <= max; }
+    function optStr(d, k, max) { return !(k in d) || str(d[k], max); }
+    // Client time in ms. Not "== request.time": ratings made offline sync later,
+    // so we only require a sane value that isn't in the future (10 min clock skew).
+    function isTime(v) {
+      return v is int && v > 1577836800000 && v <= request.time.toMillis() + 600000;
+    }
+    function optTime(d, k) { return !(k in d) || d[k] == null || isTime(d[k]); }
+
+    function validStats(s) {
+      return s is map && s.keys().hasOnly(['total', 'seen', 'high'])
+        && s.total is int && s.seen is int && s.high is int;
     }
 
+    function validDeck(d) {
+      return d.keys().hasOnly(['name', 'examDate', 'examLabel', 'createdAt', 'roundNumber', 'lastRoundEndedAt', 'stats'])
+        && d.keys().hasAll(['name', 'createdAt', 'roundNumber'])
+        && str(d.name, 200) && d.name.size() > 0
+        && (!('examDate' in d) || d.examDate == null
+            || (d.examDate is string && d.examDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+        && (!('examLabel' in d) || d.examLabel == null || str(d.examLabel, 60))
+        && isTime(d.createdAt)
+        && d.roundNumber is int && d.roundNumber >= 1 && d.roundNumber <= 100000
+        && optTime(d, 'lastRoundEndedAt')
+        && (!('stats' in d) || validStats(d.stats));
+    }
+
+    function validCard(d) {
+      return d.keys().hasOnly(['type', 'tags', 'createdAt', 'noteId', 'front', 'back', 'text', 'clozeIndex',
+            'imageId', 'masks', 'maskId', 'occlusionMode', 'revealStyle', 'prompt', 'group', 'variants',
+            'lastVariant', 'mastery', 'lastSeen', 'lapses', 'seenInRound', 'lastRating'])
+        && d.keys().hasAll(['type', 'tags', 'createdAt', 'mastery', 'lapses', 'seenInRound'])
+        && d.type in ['basic', 'cloze', 'image', 'problem']
+        && d.tags is list && d.tags.size() <= 20
+        && isTime(d.createdAt)
+        && d.mastery is int && d.mastery >= 0 && d.mastery <= 5
+        && d.lapses is int && d.lapses >= 0
+        && d.seenInRound is int && d.seenInRound >= 0
+        && optTime(d, 'lastSeen')
+        && (!('lastRating' in d) || d.lastRating == null || d.lastRating in ['again', 'hard', 'good', 'easy'])
+        && optStr(d, 'front', 20000) && optStr(d, 'back', 20000) && optStr(d, 'text', 20000)
+        && optStr(d, 'noteId', 100) && optStr(d, 'imageId', 100) && optStr(d, 'maskId', 100)
+        && optStr(d, 'prompt', 500) && optStr(d, 'group', 200)
+        && (!('clozeIndex' in d) || (d.clozeIndex is int && d.clozeIndex >= 1 && d.clozeIndex <= 500))
+        && (!('lastVariant' in d) || (d.lastVariant is int && d.lastVariant >= 0 && d.lastVariant < 100))
+        && (!('masks' in d) || (d.masks is list && d.masks.size() <= 200))
+        && (!('variants' in d) || (d.variants is list && d.variants.size() <= 30))
+        && (!('occlusionMode' in d) || d.occlusionMode in ['hideOne', 'hideAll'])
+        && (!('revealStyle' in d) || d.revealStyle in ['label', 'image']);
+    }
+
+    // One compressed image per document: WebP/JPEG data URL under 950 KB.
+    function validImage(d) {
+      return d.keys().hasOnly(['data', 'width', 'height'])
+        && d.data is string && d.data.size() < 950000
+        && d.data.matches('^data:image/(webp|jpeg);base64,[A-Za-z0-9+/=]+$')
+        && d.width is int && d.width >= 1 && d.width <= 4000
+        && d.height is int && d.height >= 1 && d.height <= 20000;
+    }
+
+    function validReview(d) {
+      return d.keys().hasOnly(['cardId', 'deckId', 'rating', 'at'])
+        && str(d.cardId, 100) && str(d.deckId, 100)
+        && d.rating in ['again', 'hard', 'good', 'easy']
+        && isTime(d.at);
+    }
+
+    // ===== Paths =====
     match /users/{uid} {
-      allow read, write: if isOwner(uid);
+      allow read, write: if false;   // the user document itself is unused
 
       match /decks/{deckId} {
-        allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid)
-          && request.resource.data.name is string
-          && request.resource.data.name.size() <= 200
-          && request.resource.data.roundNumber is int;
+        allow read, delete: if isMe(uid);
+        allow create, update: if isMe(uid) && validDeck(request.resource.data);
 
         match /cards/{cardId} {
-          allow read, delete: if isOwner(uid);
-          allow create, update: if isOwner(uid)
-            && request.resource.data.type in ['basic', 'cloze', 'image', 'problem']
-            && request.resource.data.mastery is int
-            && request.resource.data.mastery >= 0
-            && request.resource.data.mastery <= 5;
+          allow read, delete: if isMe(uid);
+          allow create, update: if isMe(uid) && validCard(request.resource.data);
         }
       }
 
-      // One compressed image per document (base64 WebP data URL, < 1 MiB).
       match /images/{imageId} {
-        allow read, delete: if isOwner(uid);
-        allow create, update: if isOwner(uid)
-          && request.resource.data.data is string
-          && request.resource.data.data.size() < 1000000
-          && request.resource.data.width is int
-          && request.resource.data.height is int;
+        allow get, delete: if isMe(uid);   // listing isn't needed
+        allow create: if isMe(uid) && validImage(request.resource.data);
+        allow update: if false;            // images never change after saving
       }
 
       match /reviews/{reviewId} {
-        allow read, create, delete: if isOwner(uid);
+        allow read, delete: if isMe(uid);
+        allow create: if isMe(uid) && validReview(request.resource.data);
       }
     }
   }

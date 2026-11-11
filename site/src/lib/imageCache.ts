@@ -46,3 +46,18 @@ const key = (uid: string, id: string) => `${uid}/${id}`
 export const cacheGet = (uid: string, id: string) => tx<StoredImage>('readonly', (s) => s.get(key(uid, id)))
 export const cachePut = (uid: string, img: StoredImage) => tx('readwrite', (s) => s.put(img, key(uid, img.id)))
 export const cacheDelete = (uid: string, id: string) => tx('readwrite', (s) => s.delete(key(uid, id)))
+
+/** Deletes the whole image cache (used on sign-out). */
+export async function clearImageCache(): Promise<void> {
+  const db = await dbPromise?.catch(() => null)
+  db?.close()
+  dbPromise = null
+  await new Promise<void>((resolve) => {
+    try {
+      const req = indexedDB.deleteDatabase(DB)
+      req.onsuccess = req.onerror = req.onblocked = () => resolve()
+    } catch {
+      resolve()
+    }
+  })
+}

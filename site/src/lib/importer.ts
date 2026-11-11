@@ -28,6 +28,47 @@ export interface ImportRow {
   key: string
 }
 
+/* ───────────────────────── Limits ───────────────────────── */
+/* Keep a bad file from freezing the tab or burning the daily write quota
+   (Spark: 20K writes/day). The same caps are enforced by firestore.rules. */
+
+export const MAX_IMPORT_BYTES = 5 * 1024 * 1024
+export const MAX_IMPORT_CARDS = 5000
+export const MAX_FIELD_CHARS = 20_000
+export const MAX_TAGS = 20
+export const MAX_TAG_CHARS = 60
+export const MAX_VARIANTS = 30
+export const MAX_STEPS = 20
+
+const KNOWN_FIELDS: Record<string, string[]> = {
+  basic: ['type', 'front', 'back', 'question', 'answer', 'tags'],
+  cloze: ['type', 'text', 'front', 'back', 'note', 'extra', 'tags'],
+  problem: ['type', 'group', 'front', 'title', 'tags', 'variants', 'question', 'back', 'answer', 'solution', 'steps'],
+}
+
+/** Rejects rows whose card content is over the limits. */
+function enforceLimits(row: ImportRow): ImportRow {
+  if (row.status === 'error') return row
+  for (const c of row.cards) {
+    const texts = [c.front, c.back, c.text, c.group, ...(c.variants ?? []).flatMap((v) => [v.front, ...v.steps.flatMap((st) => [st.title, st.body])])]
+    if (texts.some((t) => (t?.length ?? 0) > MAX_FIELD_CHARS)) {
+      return { ...row, status: 'error', note: `שדה ארוך מ-${MAX_FIELD_CHARS.toLocaleString('en-US')} תווים`, cards: [] }
+    }
+    if ((c.variants?.length ?? 0) > MAX_VARIANTS) return { ...row, status: 'error', note: `יותר מ-${MAX_VARIANTS} וריאציות`, cards: [] }
+    if (c.variants?.some((v) => v.steps.length > MAX_STEPS)) return { ...row, status: 'error', note: `יותר מ-${MAX_STEPS} שלבים`, cards: [] }
+  }
+  return row
+}
+
+/** Applies per-row limits and the total-count cap. */
+export function limitRows(rows: ImportRow[]): ImportRow[] {
+  return rows.map((r, i) =>
+    i >= MAX_IMPORT_CARDS
+      ? { ...r, status: 'error', note: `מעבר למגבלה של ${MAX_IMPORT_CARDS.toLocaleString('en-US')} כרטיסים בייבוא אחד`, cards: [] }
+      : enforceLimits(r),
+  )
+}
+
 /* ───────────────────────── Text helpers ───────────────────────── */
 
 /** Normalized text for duplicate detection. */
@@ -80,12 +121,12 @@ export function htmlToText(s: string): string {
 const clean = (s: unknown) => (typeof s === 'string' ? normalizeMath(s.trim()) : '')
 
 function parseTags(v: unknown): string[] {
-  if (Array.isArray(v)) return v.map((t) => String(t).trim()).filter(Boolean)
+  if (Array.isArray(v)) return [...new Set(v.map((t) => String(t).trim().slice(0, MAX_TAG_CHARS)).filter(Boolean))].slice(0, MAX_TAGS)
   if (typeof v !== 'string' || !v.trim()) return []
   const s = v.trim()
   const parts = /[,;]/.test(s) ? s.split(/[,;]/) : s.split(/\s+/)
   // Anki hierarchical tags use "::" — keep the last level.
-  return [...new Set(parts.map((t) => t.trim().split('::').pop()!.trim()).filter(Boolean))]
+  return [...new Set(parts.map((t) => t.trim().split('::').pop()!.trim().slice(0, MAX_TAG_CHARS)).filter(Boolean))].slice(0, MAX_TAGS)
 }
 
 /**
@@ -189,6 +230,7 @@ export function extractJson(text: string): string {
 
 export function parseJsonImport(text: string): ParseResult {
   if (!text.trim()) return { rows: [] }
+  if (text.length > MAX_IMPORT_BYTES) return { rows: [], error: `הטקסט גדול מ-5MB. פצל אותו לכמה ייבואים.` }
   let data: unknown
   try {
     data = JSON.parse(extractJson(text))
@@ -200,8 +242,8 @@ export function parseJsonImport(text: string): ParseResult {
   if (!obj || typeof obj !== 'object' || !Array.isArray(obj.cards)) {
     return { rows: [], error: 'חסר מערך "cards"' }
   }
-  const deckName = typeof obj.deck === 'string' ? obj.deck.trim() : undefined
-  const rows = obj.cards.map((raw, i): ImportRow => {
+  const deckName = typeof obj.deck === 'string' ? obj.deck.trim().slice(0, 200) : undefined
+  const rows = obj.cards.slice(0, MAX_IMPORT_CARDS + 1).map((raw, i): ImportRow => {
     const index = i + 1
     if (!raw || typeof raw !== 'object') {
       return { index, type: null, front: String(raw), back: '', tags: [], status: 'error', note: 'פריט לא תקין', cards: [], key: '' }
@@ -209,6 +251,19 @@ export function parseJsonImport(text: string): ParseResult {
     const item = raw as Record<string, unknown>
     const tags = parseTags(item.tags)
     const type = typeof item.type === 'string' ? item.type.trim().toLowerCase() : 'basic'
+    const row = buildRow(index, type, item, tags)
+    // Unknown fields are never stored; just tell the user they were ignored.
+    const unknown = KNOWN_FIELDS[type] ? Object.keys(item).filter((k) => !KNOWN_FIELDS[type].includes(k)) : []
+    if (unknown.length && row.status === 'ok') {
+      const list = unknown.slice(0, 3).join(', ') + (unknown.length > 3 ? '…' : '')
+      return { ...row, note: [row.note, `שדות לא מוכרים הושמטו: ${list}`].filter(Boolean).join(' · ') }
+    }
+    return row
+  })
+  return { deckName, rows: limitRows(rows) }
+}
+
+function buildRow(index: number, type: string, item: Record<string, unknown>, tags: string[]): ImportRow {
     switch (type) {
       case 'basic':
         return basicRow(index, clean(item.front ?? item.question), clean(item.back ?? item.answer), tags)
@@ -219,10 +274,8 @@ export function parseJsonImport(text: string): ParseResult {
       case 'image':
         return { index, type: 'image', front: clean(item.front) || 'תמונה', back: '', tags, status: 'error', note: 'כרטיסי תמונה נוצרים בעורך ההסתרה', cards: [], key: '' }
       default:
-        return { index, type: null, front: clean(item.front ?? item.text), back: '', tags, status: 'error', note: `סוג לא מוכר: ${type}`, cards: [], key: '' }
+        return { index, type: null, front: clean(item.front ?? item.text), back: '', tags, status: 'error', note: `סוג לא מוכר: ${type}`.slice(0, 80), cards: [], key: '' }
     }
-  })
-  return { deckName, rows }
 }
 
 /* ───────────────────────── CSV / TSV ───────────────────────── */
@@ -355,10 +408,10 @@ export function tableToRows(table: Table, mapping: ColumnTarget[], hasHeader: bo
   const col = (t: ColumnTarget) => mapping.indexOf(t)
   const [fi, bi, ti] = [col('front'), col('back'), col('tags')]
   const conv = (s: string | undefined) => normalizeMath((table.html || /<(br|div|b|i|p)\b/i.test(s ?? '') ? htmlToText(s ?? '') : (s ?? '')).trim())
-  return table.rows.slice(hasHeader ? 1 : 0).map((r, i) => {
+  return limitRows(table.rows.slice(hasHeader ? 1 : 0, (hasHeader ? 1 : 0) + MAX_IMPORT_CARDS + 1).map((r, i) => {
     const index = i + 1 + (hasHeader ? 1 : 0)
     return basicRow(index, fi >= 0 ? conv(r[fi]) : '', bi >= 0 ? conv(r[bi]) : '', ti >= 0 ? parseTags(r[ti]) : [])
-  })
+  }))
 }
 
 /* ───────────────────────── Duplicates ───────────────────────── */

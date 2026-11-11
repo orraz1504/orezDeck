@@ -150,3 +150,30 @@ describe('text helpers', () => {
     expect(htmlToText('a&nbsp;&amp;<div>b</div>')).toBe('a &\nb')
   })
 })
+
+describe('import limits', () => {
+  it('reports unknown fields without rejecting the card', () => {
+    const [row] = parseJsonImport('[{"type":"basic","front":"a","back":"b","id":7,"source":"x"}]').rows
+    expect(row.status).toBe('ok')
+    expect(row.note).toMatch(/id, source/)
+    expect(row.cards[0]).not.toHaveProperty('id')
+  })
+
+  it('rejects over-long fields and caps tags', () => {
+    const long = 'א'.repeat(20_001)
+    const r = parseJsonImport(JSON.stringify([{ front: long, back: 'b' }, { front: 'q', back: 'a', tags: Array.from({ length: 50 }, (_, i) => `t${i}`) }])).rows
+    expect(r[0].status).toBe('error')
+    expect(r[1].tags).toHaveLength(20)
+  })
+
+  it('caps the number of cards per import', () => {
+    const many = JSON.stringify(Array.from({ length: 5002 }, (_, i) => ({ front: `q${i}`, back: 'a' })))
+    const rows = parseJsonImport(many).rows
+    expect(rows.filter((r) => r.status === 'ok')).toHaveLength(5000)
+    expect(rows.at(-1)?.status).toBe('error')
+  })
+
+  it('refuses text over 5MB', () => {
+    expect(parseJsonImport('x'.repeat(5 * 1024 * 1024 + 1)).error).toBeTruthy()
+  })
+})

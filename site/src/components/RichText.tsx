@@ -11,7 +11,7 @@ import katex from 'katex'
 // Chemistry: \ce{H2O}, \ce{CO2 + H2O <=> H2CO3}, \pu{12 mL}
 import 'katex/contrib/mhchem'
 import { Fragment, memo, type ReactNode } from 'react'
-import { CLOZE_RE } from '../lib/cloze'
+import { replaceClozes } from '../lib/cloze'
 
 export interface ClozeOptions {
   /** The cN this card asks about. Undefined = show every cloze as plain text. */
@@ -28,12 +28,33 @@ interface Props {
   className?: string
 }
 
+/** Longer card text is cut before rendering (keeps a bad import from freezing the UI). */
+const MAX_RENDER_CHARS = 50_000
+/** Formulas longer than this are shown as plain text instead of being typeset. */
+const MAX_TEX_CHARS = 5_000
+
 const katexCache = new Map<string, string>()
+function escapeHtml(s: string): string {
+  return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
+}
 function renderTex(tex: string, display: boolean): string {
   const key = (display ? 'D' : 'I') + tex
   let html = katexCache.get(key)
   if (html === undefined) {
-    html = katex.renderToString(tex, { displayMode: display, throwOnError: false, output: 'html', strict: false })
+    // trust:false keeps \href, \url, \includegraphics and \htmlClass disabled; KaTeX escapes everything else.
+    // maxSize / maxExpand stop layout bombs like \rule{99999em}{1em} or recursive macros.
+    html =
+      tex.length > MAX_TEX_CHARS
+        ? `<code>${escapeHtml(tex.slice(0, 200))}…</code>`
+        : katex.renderToString(tex, {
+            displayMode: display,
+            throwOnError: false,
+            output: 'html',
+            strict: false,
+            trust: false,
+            maxSize: 20,
+            maxExpand: 500,
+          })
     katexCache.set(key, html)
   }
   return html
@@ -65,16 +86,15 @@ function extractMath(s: string, ctx: Ctx): string {
 }
 
 function extract(text: string, cloze: ClozeOptions | undefined, ctx: Ctx): string {
-  const s = text
+  const s = (text.length > MAX_RENDER_CHARS ? text.slice(0, MAX_RENDER_CHARS) + ' …' : text)
     .replace(/\r\n?/g, '\n')
     .replace(/\\\$/g, P_DOLLAR)
-    .replace(CLOZE_RE, (_m, n: string, content: string, hint?: string) => {
-      const idx = Number(n)
-      const state = cloze?.active === undefined || idx !== cloze.active ? 'plain' : cloze.revealed ? 'revealed' : 'hidden'
-      ctx.clozes.push({ content: extractMath(content, ctx), hint: hint || undefined, state })
-      return `${P_CLOZE}${ctx.clozes.length - 1}${P_CLOZE}`
-    })
-  return extractMath(s, ctx)
+  const withClozes = replaceClozes(s, ({ index: idx, content, hint }) => {
+    const state = cloze?.active === undefined || idx !== cloze.active ? 'plain' : cloze.revealed ? 'revealed' : 'hidden'
+    ctx.clozes.push({ content: extractMath(content, ctx), hint, state })
+    return `${P_CLOZE}${ctx.clozes.length - 1}${P_CLOZE}`
+  })
+  return extractMath(withClozes, ctx)
 }
 
 const INLINE_TOKEN = new RegExp(

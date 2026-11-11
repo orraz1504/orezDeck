@@ -1,6 +1,10 @@
-/** Cloze syntax: {{c1::answer}} or {{c1::answer::hint}} */
-
-export const CLOZE_RE = /\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g
+/**
+ * Cloze syntax: {{c1::answer}} or {{c1::answer::hint}}
+ *
+ * Parsed with a linear scanner instead of a regex: the obvious regex
+ * (/\{\{c(\d+)::([\s\S]*?)(?:::([\s\S]*?))?\}\}/g) takes cubic time on
+ * unclosed input, so one long imported card could freeze the tab (ReDoS).
+ */
 
 export interface ClozeMatch {
   index: number
@@ -12,16 +16,46 @@ export interface ClozeMatch {
 
 export function findClozes(text: string): ClozeMatch[] {
   const out: ClozeMatch[] = []
-  for (const m of text.matchAll(CLOZE_RE)) {
+  let i = 0
+  while (i < text.length) {
+    const open = text.indexOf('{{c', i)
+    if (open === -1) break
+    let p = open + 3
+    while (p < text.length && p - open - 3 < 4 && text.charCodeAt(p) >= 48 && text.charCodeAt(p) <= 57) p++
+    const digits = text.slice(open + 3, p)
+    if (!digits || text[p] !== ':' || text[p + 1] !== ':') {
+      i = open + 1
+      continue
+    }
+    const contentStart = p + 2
+    const close = text.indexOf('}}', contentStart)
+    // No closing braces anywhere after this point → no later cloze can close either.
+    if (close === -1) break
+    const inner = text.slice(contentStart, close)
+    const sep = inner.indexOf('::')
     out.push({
-      index: Number(m[1]),
-      content: m[2],
-      hint: m[3] || undefined,
-      start: m.index,
-      end: m.index + m[0].length,
+      index: Number(digits),
+      content: sep === -1 ? inner : inner.slice(0, sep),
+      hint: sep === -1 ? undefined : inner.slice(sep + 2) || undefined,
+      start: open,
+      end: close + 2,
     })
+    i = close + 2
   }
   return out
+}
+
+/** Replaces every cloze with fn(match). Linear time. */
+export function replaceClozes(text: string, fn: (m: ClozeMatch) => string): string {
+  const matches = findClozes(text)
+  if (!matches.length) return text
+  let out = ''
+  let last = 0
+  for (const m of matches) {
+    out += text.slice(last, m.start) + fn(m)
+    last = m.end
+  }
+  return out + text.slice(last)
 }
 
 /** Distinct cloze numbers in ascending order — one study card per number. */
@@ -39,5 +73,5 @@ export function wrapCloze(text: string, start: number, end: number, index?: numb
 
 /** Text with clozes resolved to their content (for search / duplicate detection). */
 export function clozePlain(text: string): string {
-  return text.replace(CLOZE_RE, (_m, _n, content: string) => content)
+  return replaceClozes(text, (m) => m.content)
 }

@@ -4,7 +4,7 @@ import { Icon } from '../components/Icon'
 import { OcclusionCanvas } from '../components/OcclusionCanvas'
 import { Button, Field, IconButton, Spinner, Kbd, ModeCard, Segmented, TagInput } from '../components/ui'
 import { applyNotePlan, deleteCards, deleteImages, newId, saveImage, useCards, useDeck, useDecks, useImage } from '../data/store'
-import { compressImage, dataUrlBytes, type CompressedImage } from '../lib/image'
+import { ALLOWED_IMAGE_TYPES, compressImage, dataUrlBytes, type CompressedImage } from '../lib/image'
 import { planOcclusionNote } from '../lib/notes'
 import type { Mask, OcclusionMode, RevealStyle } from '../lib/types'
 import { useIsDesktop } from '../lib/useMedia'
@@ -58,7 +58,7 @@ function OcclusionEditor() {
   const hasImage = !!pending || !!imageId
 
   const loadFile = async (file: File | null | undefined) => {
-    if (!file || !file.type.startsWith('image/')) return
+    if (!file) return
     setCompressing(true)
     setImageError(null)
     try {
@@ -140,7 +140,7 @@ function OcclusionEditor() {
   const createLabel = masks.length ? `${isNew ? 'צור' : 'שמור'} ${masks.length} כרטיסים` : 'צייר מלבנים'
 
   const fileInput = (
-    <input ref={fileRef} type="file" accept="image/*" hidden onChange={(e) => loadFile(e.target.files?.[0])} />
+    <input ref={fileRef} type="file" accept={ALLOWED_IMAGE_TYPES.join(',')} hidden onChange={(e) => loadFile(e.target.files?.[0])} />
   )
 
   const canvasEl = hasImage ? (

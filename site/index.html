@@ -4,6 +4,9 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="./app-icon.png" />
     <link rel="apple-touch-icon" href="./app-icon.png" />
+    <!-- Cross-origin requests send only the origin. Not "no-referrer": the API key's
+         HTTP-referrer restriction needs the origin to recognise this site. -->
+    <meta name="referrer" content="strict-origin-when-cross-origin" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#F6F6F3" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#131517" media="(prefers-color-scheme: dark)" />

@@ -20,12 +20,15 @@ import {
   type User,
 } from 'firebase/auth'
 import {
+  clearIndexedDbPersistence,
   collection,
   doc,
   getDoc,
   getDocs,
   onSnapshot,
+  terminate,
   updateDoc,
+  waitForPendingWrites,
   writeBatch,
   type DocumentData,
   type Unsubscribe,
@@ -35,7 +38,7 @@ import { useSyncExternalStore } from 'react'
 import { auth, db, googleProvider } from '../firebase'
 import type { NotePlan } from '../lib/notes'
 import { deckStats } from '../lib/stats'
-import { cacheDelete, cacheGet, cachePut } from '../lib/imageCache'
+import { cacheDelete, cacheGet, cachePut, clearImageCache } from '../lib/imageCache'
 import type { Card, Deck, DeckSummary, ReviewLog, StoredImage } from '../lib/types'
 
 export interface AppUser {
@@ -84,8 +87,33 @@ export async function signInWithGoogle() {
   }
 }
 
+/**
+ * Signs out and wipes everything this account left on the device:
+ * the Firestore offline cache (IndexedDB), the image cache and in-memory data.
+ * Firestore can't be used after terminate(), so the page reloads.
+ */
 export async function signOut() {
-  await fbSignOut(auth)
+  // Clearing the cache would drop ratings made offline that haven't synced yet.
+  const synced = await Promise.race([
+    waitForPendingWrites(db).then(() => true),
+    new Promise<boolean>((r) => setTimeout(() => r(false), 4000)),
+  ])
+  if (!synced && !confirm('יש שינויים שעוד לא הגיעו לשרת (אין חיבור?). ביציאה הם יימחקו. לצאת בכל זאת?')) return
+  resetShared()
+  imageMem.clear()
+  try {
+    await fbSignOut(auth)
+  } finally {
+    try {
+      await terminate(db)
+      await clearIndexedDbPersistence(db)
+    } catch (e) {
+      console.warn('could not clear the offline cache', e)
+    }
+    await clearImageCache()
+    window.location.replace(`${window.location.pathname}#/login`)
+    window.location.reload()
+  }
 }
 
 function uid(): string {
@@ -144,6 +172,7 @@ function subscribeShared<T>(key: string, initial: T, start: Starter<T>, listener
       },
       (err) => {
         console.error(key, err)
+        if ((err as { code?: string }).code === 'resource-exhausted') reportSyncError(err)
         e.snap = { ...e.snap, loading: false, error: err }
         emit()
       },
@@ -293,7 +322,40 @@ async function runBatches<T>(items: T[], op: (b: WriteBatch, item: T) => void) {
  * navigate away right after saving must not wait for the server.
  */
 function settle(p: Promise<unknown>) {
-  p.catch((e) => console.error('write failed', e))
+  p.catch((e) => {
+    console.error('write failed', e)
+    reportSyncError(e)
+  })
+}
+
+/* ───────────────────────── Sync errors (shown in a banner) ───────────────────────── */
+
+export interface SyncError {
+  code: string
+  at: number
+}
+
+let syncError: SyncError | null = null
+const syncListeners = new Set<() => void>()
+
+export function reportSyncError(e: unknown) {
+  syncError = { code: (e as { code?: string })?.code ?? 'unknown', at: Date.now() }
+  syncListeners.forEach((l) => l())
+}
+
+export function dismissSyncError() {
+  syncError = null
+  syncListeners.forEach((l) => l())
+}
+
+export function useSyncError(): SyncError | null {
+  return useSyncExternalStore(
+    (l) => {
+      syncListeners.add(l)
+      return () => syncListeners.delete(l)
+    },
+    () => syncError,
+  )
 }
 
 export async function addCards(deckId: string, newCards: NewCard[]): Promise<string[]> {
@@ -428,4 +490,35 @@ export function deleteImages(ids: (string | undefined)[]) {
     void cacheDelete(u, id)
   })
   settle(runBatches(unique, (b, id) => b.delete(doc(db, 'users', u, 'images', id))))
+}
+
+/* ───────────────────────── Backup helpers ───────────────────────── */
+
+export async function fetchDecks(): Promise<Deck[]> {
+  return (await getDocs(decksCol())).docs.map((d) => withId<Deck>(d.id, d.data()))
+}
+
+export async function fetchCards(deckId: string): Promise<Card[]> {
+  return (await getDocs(cardsCol(deckId))).docs.map((d) => withId<Card>(d.id, d.data()))
+}
+
+/** Image data for a backup: local cache first, then Firestore. */
+export async function fetchImage(id: string): Promise<StoredImage | null> {
+  const u = uid()
+  const cached = await cacheGet(u, id)
+  if (cached) return cached
+  try {
+    const snap = await getDoc(doc(db, 'users', u, 'images', id))
+    return snap.exists() ? { ...(snap.data() as Omit<StoredImage, 'id'>), id } : null
+  } catch {
+    return null
+  }
+}
+
+/** Deletes every deck (with its cards and images) and the review log. */
+export async function deleteAllData() {
+  const decks = await fetchDecks()
+  for (const d of decks) await deleteDeck(d.id)
+  const reviews = await getDocs(collection(db, 'users', uid(), 'reviews'))
+  settle(runBatches(reviews.docs, (b, r) => b.delete(r.ref)))
 }

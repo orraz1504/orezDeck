@@ -8,7 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "oxlint",
     "preview": "vite preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "test:rules": "npx -y firebase-tools@15.34.1 emulators:exec --only firestore --project demo-orezdeck \"vitest run --config vitest.rules.config.ts\""
   },
   "dependencies": {
     "firebase": "^13.2.0",
@@ -19,7 +20,7 @@
     "react-router-dom": "^7.18.5"
   },
   "devDependencies": {
-    "@types/katex": "^0.16.8",
+    "@firebase/rules-unit-testing": "6.0.0",
     "@types/node": "^24.19.2",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
@@ -28,5 +29,8 @@
     "typescript": "~7.0.2",
     "vite": "^8.3.6",
     "vitest": "^5.1.0"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "1.14.6"
   }
 }

@@ -9,6 +9,7 @@ import { n } from '../lib/format'
 import {
   cardKey,
   cardsToImport,
+  MAX_IMPORT_BYTES,
   guessMapping,
   looksLikeHeader,
   markDuplicates,
@@ -92,6 +93,10 @@ export function ImportPage() {
 
   const loadFile = async (file: File | undefined) => {
     if (!file) return
+    if (file.size > MAX_IMPORT_BYTES) {
+      showToast(`הקובץ גדול מ-5MB (${(file.size / 1024 / 1024).toFixed(1)}MB). פצל אותו לכמה קבצים.`)
+      return
+    }
     setFileName(file.name)
     setMapping(null)
     setHasHeader(null)
@@ -156,6 +161,7 @@ export function ImportPage() {
       <textarea
         className="textarea textarea--code"
         value={jsonText}
+        maxLength={MAX_IMPORT_BYTES}
         onChange={(e) => setJsonText(e.target.value)}
         placeholder={'{"deck": "שם", "cards": [\n  {"type": "basic", "front": "...", "back": "...", "tags": ["..."]},\n  {"type": "cloze", "text": "... {{c1::...}} ..."}\n]}'}
         spellCheck={false}
@@ -197,6 +203,7 @@ export function ImportPage() {
           className="textarea textarea--code"
           style={{ minHeight: 100 }}
           value={csvText}
+          maxLength={MAX_IMPORT_BYTES}
           onChange={(e) => {
             setCsvText(e.target.value)
             setMapping(null)

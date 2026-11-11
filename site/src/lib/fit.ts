@@ -4,16 +4,17 @@
  * (`font-size: calc(23px * var(--fit))`).
  */
 
+import { clozePlain } from './cloze'
+
 /** Approximate visible length: markup removed, formulas count about half their LaTeX length. */
 export function visibleLength(text: string | undefined | null): number {
   if (!text) return 0
   let formulas = 0
-  const plain = text
+  const plain = clozePlain(text.slice(0, 20_000))
     .replace(/\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g, (_m, d?: string, i?: string) => {
       formulas += Math.ceil((d ?? i ?? '').replace(/\\[a-zA-Z]+|[{}^_]/g, '').length * 0.6) + (d ? 20 : 0)
       return ''
     })
-    .replace(/\{\{c\d+::([\s\S]*?)(?:::[\s\S]*?)?\}\}/g, '$1')
     .replace(/[*`|#>-]/g, '')
     .replace(/\s+/g, ' ')
     .trim()

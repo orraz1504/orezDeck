@@ -99,6 +99,7 @@ export function RichField({ value, onChange, placeholder, rows = 3, math = true,
         className="textarea rich-field__input"
         dir="auto"
         rows={rows}
+        maxLength={20_000}
         value={value}
         placeholder={placeholder}
         autoFocus={autoFocus}
