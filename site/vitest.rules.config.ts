@@ -8,5 +8,6 @@ export default defineConfig({
     testTimeout: 30_000,
     hookTimeout: 60_000,
     fileParallelism: false,
+    reporters: process.env.RULES_REPORTER ? ['default', process.env.RULES_REPORTER] : ['default'],
   },
 })
