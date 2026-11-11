@@ -70,9 +70,18 @@ jobs:
 
       - run: npm ci
       # The github-actions reporter turns failing tests into annotations on the run.
-      - run: npm run test:rules
+      - name: Rules tests
+        shell: bash
         env:
           RULES_REPORTER: github-actions
+        run: |
+          set -o pipefail
+          if ! npm run test:rules 2>&1 | tee rules.log; then
+            # Surface the end of the log as an annotation (readable without signing in).
+            msg=$(tail -n 40 rules.log | sed 's/%/%25/g' | sed ':a;N;$!ba;s/\n/%0A/g')
+            echo "::error title=Rules tests failed::${msg}"
+            exit 1
+          fi
 
   deploy:
     if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
