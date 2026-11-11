@@ -79,10 +79,11 @@ function ImageFace({ card, revealed }: { card: Card; revealed: boolean }) {
         masks={card.masks ?? []}
         targetId={card.maskId}
         mode={mode}
+        revealStyle={card.revealStyle}
         revealed={revealed}
         caption={img.loading ? 'טוען תמונה…' : img.missing ? 'תמונה לדוגמה' : undefined}
       />
-      {revealed && target && (
+      {revealed && target?.label && (card.revealStyle !== 'image' || !img.src) && (
         <div style={{ fontSize: 16, padding: '0 6px' }} dir="auto">
           <bdi>{target.label}</bdi>
         </div>

@@ -14,10 +14,11 @@ export function CardTitle({ card }: { card: Card }) {
     case 'cloze':
       return <RichText inline text={card.text} cloze={{ active: card.clozeIndex, revealed: false }} />
     case 'image': {
-      const m = card.masks?.find((x) => x.id === card.maskId)
+      const i = card.masks?.findIndex((x) => x.id === card.maskId) ?? -1
+      const m = i >= 0 ? card.masks![i] : undefined
       return (
         <span dir="auto">
-          {card.prompt || 'הסתרת תמונה'} — <bdi>{m?.label ?? '?'}</bdi>
+          {card.prompt || 'הסתרת תמונה'} — <bdi>{m?.label || `מלבן ${i + 1}`}</bdi>
         </span>
       )
     }

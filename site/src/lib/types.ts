@@ -5,6 +5,8 @@ export type Rating = 'again' | 'hard' | 'good' | 'easy'
 export type StudyMode = 'continue' | 'weak' | 'all'
 export type SessionSize = 20 | 50 | 100 | 'all'
 export type OcclusionMode = 'hideOne' | 'hideAll'
+/** Answer side of an image card: the typed label, or the original image under the box. */
+export type RevealStyle = 'label' | 'image'
 
 /** Cached counters on the deck doc, so the home screen doesn't read every card. */
 export interface DeckSummary {
@@ -90,6 +92,7 @@ export interface Card extends CardProgress {
   /** id of the mask this card asks about */
   maskId?: string
   occlusionMode?: OcclusionMode
+  revealStyle?: RevealStyle
   /** prompt shown above the image, e.g. "מה המבנה המסומן?" */
   prompt?: string
 

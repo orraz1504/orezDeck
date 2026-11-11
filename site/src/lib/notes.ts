@@ -6,7 +6,7 @@
  * keeping learning progress on cards whose key still exists.
  */
 import { clozeIndices } from './cloze'
-import type { Card, Mask, OcclusionMode } from './types'
+import type { Card, Mask, OcclusionMode, RevealStyle } from './types'
 
 export interface NotePlan {
   create: Partial<Card>[]
@@ -42,7 +42,7 @@ export function planClozeNote(
 export function planOcclusionNote(
   existing: Card[],
   noteId: string,
-  data: { imageId: string; masks: Mask[]; occlusionMode: OcclusionMode; prompt: string; tags: string[] },
+  data: { imageId: string; masks: Mask[]; occlusionMode: OcclusionMode; revealStyle: RevealStyle; prompt: string; tags: string[] },
 ): NotePlan {
   return plan(existing, data.masks.map((m) => m.id), (c) => c.maskId ?? '', (maskId) => ({
     type: 'image',
@@ -51,6 +51,7 @@ export function planOcclusionNote(
     imageId: data.imageId,
     masks: data.masks,
     occlusionMode: data.occlusionMode,
+    revealStyle: data.revealStyle,
     prompt: data.prompt,
     tags: data.tags,
   }))

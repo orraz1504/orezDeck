@@ -1123,3 +1123,10 @@ math-field.math-editor__field::part(menu-toggle) {
 .preview-sides .study-card--min {
   min-height: 0;
 }
+
+/* Revealed target with "show original image": no fill, just a highlight frame */
+.occ-mask--uncovered {
+  background: transparent;
+  border: 2.5px solid var(--occ);
+  box-shadow: 0 0 0 4px var(--occ-soft);
+}

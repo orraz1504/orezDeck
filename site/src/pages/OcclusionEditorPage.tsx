@@ -6,7 +6,7 @@ import { Button, Field, IconButton, Spinner, Kbd, ModeCard, Segmented, TagInput 
 import { applyNotePlan, deleteCards, deleteImages, newId, saveImage, useCards, useDeck, useDecks, useImage } from '../data/store'
 import { compressImage, dataUrlBytes, type CompressedImage } from '../lib/image'
 import { planOcclusionNote } from '../lib/notes'
-import type { Mask, OcclusionMode } from '../lib/types'
+import type { Mask, OcclusionMode, RevealStyle } from '../lib/types'
 import { useIsDesktop } from '../lib/useMedia'
 
 /**
@@ -45,6 +45,7 @@ function OcclusionEditor() {
   const [masks, setMasks] = useState<Mask[]>(first?.masks ?? [])
   const [selected, setSelected] = useState<string | null>(null)
   const [mode, setMode] = useState<OcclusionMode>(first?.occlusionMode ?? 'hideOne')
+  const [revealStyle, setRevealStyle] = useState<RevealStyle>(first?.revealStyle ?? 'label')
   const [prompt, setPrompt] = useState(first?.prompt ?? 'מה המבנה המסומן?')
   const [tags, setTags] = useState<string[]>(first?.tags ?? [])
   const [busy, setBusy] = useState(false)
@@ -104,7 +105,9 @@ function OcclusionEditor() {
 
   const labeled = masks.filter((m) => m.label.trim())
   const unlabeled = masks.length - labeled.length
-  const valid = hasImage && masks.length > 0 && unlabeled === 0
+  // Labels are required only when the answer side shows the typed text.
+  const needsLabels = revealStyle === 'label'
+  const valid = hasImage && masks.length > 0 && (!needsLabels || unlabeled === 0)
 
   const save = async () => {
     if (!valid) return
@@ -119,6 +122,7 @@ function OcclusionEditor() {
         imageId: finalImageId,
         masks: masks.map((m) => ({ ...m, label: m.label.trim() })),
         occlusionMode: mode,
+        revealStyle,
         prompt: prompt.trim(),
         tags,
       }),
@@ -196,7 +200,7 @@ function OcclusionEditor() {
             dir="auto"
             style={{ minHeight: 36, border: 'none', background: 'transparent', padding: '0 4px', fontSize: 15 }}
             value={m.label}
-            placeholder="מה מוסתר כאן?"
+            placeholder={needsLabels ? 'מה מוסתר כאן?' : 'תווית (לא חובה)'}
             onFocus={() => setSelected(m.id)}
             onChange={(e) => setMasks(masks.map((x) => (x.id === m.id ? { ...x, label: e.target.value } : x)))}
           />
@@ -210,6 +214,24 @@ function OcclusionEditor() {
           />
         </div>
       ))}
+    </div>
+  )
+
+  const revealPicker = (
+    <div className="stack" style={{ gap: 8 }} role="radiogroup">
+      <div style={{ fontSize: 14, fontWeight: 600 }}>מה מופיע בצד התשובה</div>
+      <ModeCard
+        checked={revealStyle === 'label'}
+        onSelect={() => setRevealStyle('label')}
+        title="הטקסט שכתבתי"
+        desc="המלבן מתחלף בתווית שהקלדתי"
+      />
+      <ModeCard
+        checked={revealStyle === 'image'}
+        onSelect={() => setRevealStyle('image')}
+        title="התמונה המקורית"
+        desc="המלבן נעלם וחושף את מה שכתוב בתמונה. תוויות לא חובה."
+      />
     </div>
   )
 
@@ -255,6 +277,17 @@ function OcclusionEditor() {
               { value: 'hideAll', label: 'הסתר הכל, חשוף אחד' },
             ]}
           />
+          <div className="stack" style={{ gap: 6 }}>
+            <span className="field__label">בצד התשובה</span>
+            <Segmented
+              value={revealStyle}
+              onChange={setRevealStyle}
+              options={[
+                { value: 'label', label: 'הטקסט שכתבתי' },
+                { value: 'image', label: 'התמונה המקורית' },
+              ]}
+            />
+          </div>
           {canvas}
           {hasImage && (
             <div className="row" style={{ gap: 6 }}>
@@ -286,7 +319,7 @@ function OcclusionEditor() {
         </div>
         <div className="bottom-bar">
           <Button variant="primary" size="lg" block disabled={!valid || busy} onClick={save}>
-            {unlabeled > 0 ? `חסרות תוויות ל-${unlabeled} מלבנים` : createLabel}
+            {needsLabels && unlabeled > 0 ? `חסרות תוויות ל-${unlabeled} מלבנים` : createLabel}
           </Button>
         </div>
       </div>
@@ -349,6 +382,7 @@ function OcclusionEditor() {
             style={{ width: 340, flex: 'none', borderInlineStart: '1px solid var(--line)', background: 'var(--surface)', padding: 20, gap: 16, overflowY: 'auto' }}
           >
             {modePicker}
+            {revealPicker}
             <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
               <span style={{ fontSize: 14, fontWeight: 600 }}>מלבנים</span>
               <span className="faint" style={{ fontSize: 13 }}>

@@ -1,4 +1,4 @@
-import type { Mask, OcclusionMode } from '../lib/types'
+import type { Mask, OcclusionMode, RevealStyle } from '../lib/types'
 
 interface Props {
   src: string | null
@@ -7,6 +7,8 @@ interface Props {
   masks: Mask[]
   targetId?: string
   mode: OcclusionMode
+  /** 'image': the box disappears and the original image shows through. */
+  revealStyle?: RevealStyle
   revealed: boolean
   caption?: string
 }
@@ -23,7 +25,7 @@ const box = (m: Mask) => ({
  * "hideOne": only the target is covered. "hideAll": every mask is covered,
  * the target is highlighted.
  */
-export function OcclusionImage({ src, width, height, masks, targetId, mode, revealed, caption }: Props) {
+export function OcclusionImage({ src, width, height, masks, targetId, mode, revealStyle = 'label', revealed, caption }: Props) {
   return (
     <div className="occ-stage" style={width && height ? { aspectRatio: `${width} / ${height}` } : undefined}>
       {src ? (
@@ -36,6 +38,9 @@ export function OcclusionImage({ src, width, height, masks, targetId, mode, reve
       {masks.map((m) => {
         const isTarget = m.id === targetId
         if (isTarget) {
+          if (revealed && revealStyle === 'image' && src) {
+            return <div key={m.id} className="occ-mask occ-mask--uncovered" style={box(m)} />
+          }
           return revealed ? (
             <div key={m.id} className="occ-mask occ-mask--revealed" style={box(m)}>
               <bdi>{m.label}</bdi>
