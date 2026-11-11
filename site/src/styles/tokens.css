@@ -1,0 +1,127 @@
+/*
+ * Design tokens — extracted 1:1 from the Claude Design project
+ * ("השראה design/Design System.dc.html"). Do not invent new colours here;
+ * add semantic aliases below instead.
+ */
+
+:root,
+[data-theme='light'] {
+  --canvas: #e6e6e2;
+  --bg: #f6f6f3;
+  --surface: #ffffff;
+  --surface2: #efefeb;
+  --line: #e2e2dc;
+  --line2: #cdcdc6;
+  --ink: #1c1e20;
+  --ink2: #53575c;
+  --ink3: #7e8287;
+
+  --accent: oklch(0.46 0.075 230);
+  --accent-soft: oklch(0.95 0.018 230);
+  --on-accent: #ffffff;
+
+  --again: oklch(0.52 0.13 28);
+  --again-soft: oklch(0.955 0.022 28);
+  --hard: oklch(0.52 0.1 65);
+  --hard-soft: oklch(0.955 0.03 80);
+  --good: oklch(0.48 0.08 155);
+  --good-soft: oklch(0.955 0.022 155);
+  --easy: oklch(0.48 0.08 255);
+  --easy-soft: oklch(0.955 0.02 255);
+
+  --m0: #dadad4;
+  --m1: oklch(0.89 0.025 230);
+  --m2: oklch(0.8 0.045 230);
+  --m3: oklch(0.69 0.065 230);
+  --m4: oklch(0.57 0.075 230);
+  --m5: oklch(0.43 0.075 230);
+
+  --cloze: oklch(0.47 0.09 295);
+  --cloze-soft: oklch(0.95 0.02 295);
+  --occ: oklch(0.62 0.11 65);
+  --occ-soft: oklch(0.93 0.04 75);
+  --mask: #5e6267;
+
+  --shadow: 0 1px 2px rgba(20, 22, 24, 0.04), 0 6px 24px rgba(20, 22, 24, 0.05);
+  --shadow-pop: 0 12px 32px rgba(20, 22, 24, 0.14);
+  --overlay: rgba(20, 22, 24, 0.32);
+
+  color-scheme: light;
+}
+
+[data-theme='dark'] {
+  --canvas: #0c0d0e;
+  --bg: #131517;
+  --surface: #1b1e21;
+  --surface2: #24282c;
+  --line: #2b2f34;
+  --line2: #3b4046;
+  --ink: #e8eaeb;
+  --ink2: #a8adb2;
+  --ink3: #7a7f85;
+
+  --accent: oklch(0.76 0.075 230);
+  --accent-soft: oklch(0.29 0.035 230);
+  --on-accent: #101315;
+
+  --again: oklch(0.74 0.11 28);
+  --again-soft: oklch(0.27 0.04 28);
+  --hard: oklch(0.78 0.09 75);
+  --hard-soft: oklch(0.28 0.035 75);
+  --good: oklch(0.76 0.08 155);
+  --good-soft: oklch(0.27 0.03 155);
+  --easy: oklch(0.76 0.075 255);
+  --easy-soft: oklch(0.28 0.035 255);
+
+  --m0: #30343a;
+  --m1: oklch(0.34 0.03 230);
+  --m2: oklch(0.44 0.045 230);
+  --m3: oklch(0.55 0.06 230);
+  --m4: oklch(0.67 0.07 230);
+  --m5: oklch(0.8 0.075 230);
+
+  --cloze: oklch(0.78 0.08 295);
+  --cloze-soft: oklch(0.29 0.04 295);
+  --occ: oklch(0.76 0.1 70);
+  --occ-soft: oklch(0.32 0.05 70);
+  --mask: #8a9096;
+
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 6px 24px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.45);
+  --overlay: rgba(0, 0, 0, 0.55);
+
+  color-scheme: dark;
+}
+
+:root {
+  /* Typography */
+  --font-sans: 'IBM Plex Sans Hebrew', 'IBM Plex Sans', system-ui, sans-serif;
+  --font-latin: 'IBM Plex Sans', 'IBM Plex Sans Hebrew', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'IBM Plex Sans Hebrew', ui-monospace, monospace;
+  --font-math: 'STIX Two Text', 'Times New Roman', serif;
+
+  --fs-screen-title: 28px; /* 28/700 */
+  --fs-subtitle: 19px; /* 19/600 */
+  --fs-card: 22px; /* 22/500 · 1.6 */
+  --fs-body: 16px; /* 16/400 · 1.7 */
+  --fs-label: 13px; /* 13/500 */
+
+  /* Radii */
+  --r-xs: 6px;
+  --r-sm: 8px;
+  --r-md: 11px;
+  --r-lg: 14px;
+  --r-xl: 16px;
+  --r-card: 22px;
+  --r-pill: 999px;
+
+  /* Control heights: 56 (thumb, mobile) · 44 · 32 */
+  --h-lg: 56px;
+  --h-md: 44px;
+  --h-sm: 32px;
+
+  /* Layout */
+  --sidebar-w: 232px;
+  --gutter: 16px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}

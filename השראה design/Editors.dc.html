@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+:root,[data-theme=light]{--canvas:#E6E6E2;--bg:#F6F6F3;--surface:#FFFFFF;--surface2:#EFEFEB;--line:#E2E2DC;--line2:#CDCDC6;--ink:#1C1E20;--ink2:#53575C;--ink3:#7E8287;--accent:oklch(0.46 0.075 230);--accent-soft:oklch(0.95 0.018 230);--on-accent:#FFFFFF;--again:oklch(0.52 0.13 28);--again-soft:oklch(0.955 0.022 28);--hard:oklch(0.52 0.10 65);--hard-soft:oklch(0.955 0.03 80);--good:oklch(0.48 0.08 155);--good-soft:oklch(0.955 0.022 155);--easy:oklch(0.48 0.08 255);--easy-soft:oklch(0.955 0.02 255);--m0:#DADAD4;--m1:oklch(0.89 0.025 230);--m2:oklch(0.80 0.045 230);--m3:oklch(0.69 0.065 230);--m4:oklch(0.57 0.075 230);--m5:oklch(0.43 0.075 230);--cloze:oklch(0.47 0.09 295);--cloze-soft:oklch(0.95 0.02 295);--occ:oklch(0.62 0.11 65);--occ-soft:oklch(0.93 0.04 75);--mask:#5E6267;--shadow:0 1px 2px rgba(20,22,24,.04),0 6px 24px rgba(20,22,24,.05)}
+[data-theme=dark]{--canvas:#0C0D0E;--bg:#131517;--surface:#1B1E21;--surface2:#24282C;--line:#2B2F34;--line2:#3B4046;--ink:#E8EAEB;--ink2:#A8ADB2;--ink3:#7A7F85;--accent:oklch(0.76 0.075 230);--accent-soft:oklch(0.29 0.035 230);--on-accent:#101315;--again:oklch(0.74 0.11 28);--again-soft:oklch(0.27 0.04 28);--hard:oklch(0.78 0.09 75);--hard-soft:oklch(0.28 0.035 75);--good:oklch(0.76 0.08 155);--good-soft:oklch(0.27 0.03 155);--easy:oklch(0.76 0.075 255);--easy-soft:oklch(0.28 0.035 255);--m0:#30343A;--m1:oklch(0.34 0.03 230);--m2:oklch(0.44 0.045 230);--m3:oklch(0.55 0.06 230);--m4:oklch(0.67 0.07 230);--m5:oklch(0.80 0.075 230);--cloze:oklch(0.78 0.08 295);--cloze-soft:oklch(0.29 0.04 295);--occ:oklch(0.76 0.10 70);--occ-soft:oklch(0.32 0.05 70);--mask:#8A9096;--shadow:0 1px 2px rgba(0,0,0,.3),0 6px 24px rgba(0,0,0,.25)}
+body{margin:0;background:var(--canvas)}
+a{color:var(--accent)}a:hover{color:var(--ink)}
+.dv-turn{padding:40px 44px 32px;border-bottom:1px solid var(--line);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 11px 'IBM Plex Mono',monospace;padding:3px 8px;background:var(--ink);color:var(--bg);border-radius:4px;text-decoration:none}.dv-tname{font-weight:600;font-size:16px;color:var(--ink)}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 11px 'IBM Plex Mono',monospace;padding:3px 7px;background:var(--line);color:var(--ink);border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font-size:13px;color:var(--ink2)}.dv-opt:target .dv-oid{background:var(--accent);color:var(--on-accent)}.dv-next{margin:22px 0 0;font-size:13px;color:var(--ink3)}
+</style>
+</helmet>
+<div data-theme="{{ theme }}" dir="rtl" style="background:var(--canvas);min-height:100vh;color:var(--ink);font-family:'IBM Plex Sans Hebrew','IBM Plex Sans',sans-serif">
+
+<header style="padding:40px 44px 8px;display:flex;flex-direction:column;gap:8px">
+<h1 style="margin:0;font-size:28px;font-weight:700">מסכים 6–8 · עורך הסתרת תמונה, ייבוא, עורך כרטיס</h1>
+<div style="display:flex;gap:14px;font-size:14px"><a href="Design%20System.dc.html">מערכת עיצוב</a><a href="Decks.dc.html">חפיסות</a><a href="Study.dc.html">מסכי לימוד</a></div>
+</header>
+
+<section class="dv-turn" id="t6">
+<div class="dv-thd"><a class="dv-tid" href="#t6">6</a><span class="dv-tname">עורך הסתרת תמונה</span></div>
+<div class="dv-opts">
+<div class="dv-opt" id="6a"><div class="dv-olabel"><a class="dv-oid" href="#6a">6a</a>מובייל</div>
+<div style="width:390px;height:844px;background:var(--bg);border-radius:32px;border:1px solid var(--line2);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)">
+<div dir="ltr" style="height:44px;flex:none;display:flex;align-items:center;padding:0 28px;font:600 14px 'IBM Plex Sans'">9:41</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 10px;height:52px">
+<div style="width:44px;height:44px;display:grid;place-items:center;color:var(--ink2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M9 6l6 6-6 6"></path></svg></div>
+<div style="font-size:16px;font-weight:600">הסתרת תמונה</div>
+<div style="padding:0 10px;font-size:15px;font-weight:600;color:var(--accent)">שמירה</div>
+</div>
+<div style="padding:4px 16px 12px">
+<div style="display:grid;grid-template-columns:1fr 1fr;background:var(--surface2);border-radius:11px;padding:3px;gap:3px">
+<div style="height:38px;display:grid;place-items:center;font-size:14px;font-weight:600;background:var(--surface);border-radius:9px;box-shadow:var(--shadow)">הסתר אחד</div>
+<div style="height:38px;display:grid;place-items:center;font-size:14px;color:var(--ink2)">הסתר הכל, חשוף אחד</div>
+</div>
+</div>
+<div dir="ltr" style="position:relative;height:330px;margin:0 16px;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(135deg,var(--surface2) 0 8px,var(--bg) 8px 16px);border:1px solid var(--line)">
+<div style="position:absolute;left:10px;bottom:8px;font:11px 'IBM Plex Mono';color:var(--ink3)">uploaded image · heart, anterior</div>
+<sc-for list="{{ rects }}" as="r" hint-placeholder-count="5">
+<div style="position:absolute;left:{{ r.x }};top:{{ r.y }};width:{{ r.w }};height:{{ r.h }};border-radius:5px;background:var(--occ-soft);border:1.5px solid var(--occ);display:grid;place-items:center;font:600 12px 'IBM Plex Mono';color:var(--hard)">{{ r.n }}</div>
+</sc-for>
+<div style="position:absolute;left:38%;top:58%;width:30%;height:10%;border-radius:5px;background:var(--occ-soft);border:2px solid var(--accent);display:grid;place-items:center;font:600 12px 'IBM Plex Mono';color:var(--accent)">6</div>
+<i style="position:absolute;left:calc(38% - 5px);top:calc(58% - 5px);width:10px;height:10px;background:var(--surface);border:2px solid var(--accent);border-radius:3px"></i>
+<i style="position:absolute;left:calc(68% - 5px);top:calc(68% - 5px);width:10px;height:10px;background:var(--surface);border:2px solid var(--accent);border-radius:3px"></i>
+</div>
+<div style="display:flex;gap:6px;padding:12px 16px">
+<div style="flex:1;height:44px;border-radius:11px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;font-weight:600"><span style="width:14px;height:10px;border:1.5px solid currentColor;border-radius:2px"></span>מלבן</div>
+<div style="flex:1;height:44px;border-radius:11px;background:var(--surface);border:1px solid var(--line2);display:grid;place-items:center;font-size:14px">החלף תמונה</div>
+<div style="width:44px;height:44px;border-radius:11px;background:var(--surface);border:1px solid var(--line2);display:grid;place-items:center;color:var(--ink2)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M5 7h14M10 7V4h4v3M7 7l1 13h8l1-13"></path></svg></div>
+</div>
+<div style="flex:1;overflow:hidden;margin:0 16px;background:var(--surface);border:1px solid var(--line);border-radius:14px">
+<sc-for list="{{ rectsAll }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-bottom:1px solid var(--line)"><span style="width:24px;height:24px;border-radius:6px;background:var(--occ-soft);color:var(--hard);display:grid;place-items:center;font:600 12px 'IBM Plex Mono'">{{ r.n }}</span><span dir="ltr" style="flex:1;text-align:right;font-size:15px">{{ r.l }}</span></div>
+</sc-for>
+</div>
+<div style="padding:12px 16px 34px"><div style="height:54px;border-radius:14px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600;font-size:17px">צור 6 כרטיסים</div></div>
+</div></div>
+
+<div class="dv-opt" id="6b"><div class="dv-olabel"><a class="dv-oid" href="#6b">6b</a>דסקטופ</div>
+<div style="width:1280px;height:800px;background:var(--bg);border-radius:12px;border:1px solid var(--line2);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)">
+<div dir="ltr" style="height:36px;flex:none;background:var(--surface2);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;padding:0 14px"><i style="width:10px;height:10px;border-radius:50%;background:var(--line2)"></i><i style="width:10px;height:10px;border-radius:50%;background:var(--line2)"></i><i style="width:10px;height:10px;border-radius:50%;background:var(--line2)"></i><span style="margin-left:14px;font:12px 'IBM Plex Mono';color:var(--ink3);background:var(--surface);padding:3px 12px;border-radius:6px">kartisiyot.app/decks/anatomy/occlusion/new</span></div>
+<div style="height:60px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 24px;border-bottom:1px solid var(--line);background:var(--surface)">
+<div style="display:flex;align-items:center;gap:12px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--ink2)"><path d="M9 6l6 6-6 6"></path></svg><span style="font-size:17px;font-weight:600">כרטיס הסתרת תמונה חדש</span><span style="font-size:14px;color:var(--ink3)">אנטומיה — גפה עליונה</span></div>
+<div style="display:flex;gap:8px"><div style="height:38px;padding:0 14px;border-radius:10px;display:flex;align-items:center;font-size:14px;color:var(--ink2)">ביטול</div><div style="height:38px;padding:0 18px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;font-size:14px;font-weight:600">צור 6 כרטיסים</div></div>
+</div>
+<div style="flex:1;display:flex;min-height:0">
+<div style="flex:1;display:flex;flex-direction:column;padding:18px 24px;gap:14px">
+<div style="display:flex;gap:8px;align-items:center">
+<div style="height:36px;padding:0 12px;border-radius:9px;background:var(--accent-soft);color:var(--accent);display:flex;align-items:center;gap:6px;font-size:14px;font-weight:600"><span style="width:14px;height:10px;border:1.5px solid currentColor;border-radius:2px"></span>מלבן <b style="font:500 11px 'IBM Plex Mono';opacity:.7">R</b></div>
+<div style="height:36px;padding:0 12px;border-radius:9px;background:var(--surface);border:1px solid var(--line2);display:flex;align-items:center;gap:6px;font-size:14px"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 16V4M7 9l5-5 5 5M5 20h14"></path></svg>העלאת תמונה</div>
+<div style="height:36px;padding:0 12px;border-radius:9px;background:var(--surface);border:1px solid var(--line2);display:flex;align-items:center;gap:6px;font-size:14px">הדבקה <b dir="ltr" style="font:500 11px 'IBM Plex Mono';color:var(--ink3)">Ctrl+V</b></div>
+<div style="height:36px;padding:0 12px;border-radius:9px;display:flex;align-items:center;font-size:14px;color:var(--ink2)">מחיקת מלבן</div>
+<span style="margin-right:auto;font-size:13px;color:var(--ink3)">גרור על התמונה כדי לצייר מלבן</span>
+</div>
+<div dir="ltr" style="flex:1;position:relative;border-radius:14px;overflow:hidden;background:repeating-linear-gradient(135deg,var(--surface2) 0 8px,var(--bg) 8px 16px);border:1px solid var(--line)">
+<div style="position:absolute;left:14px;bottom:12px;font:11px 'IBM Plex Mono';color:var(--ink3)">uploaded image · heart, anterior · 1600×1200</div>
+<sc-for list="{{ rects }}" as="r" hint-placeholder-count="5">
+<div style="position:absolute;left:{{ r.x }};top:{{ r.y }};width:{{ r.w }};height:{{ r.h }};border-radius:6px;background:var(--occ-soft);border:1.5px solid var(--occ);display:grid;place-items:center;font:600 13px 'IBM Plex Mono';color:var(--hard)">{{ r.n }}</div>
+</sc-for>
+<div style="position:absolute;left:38%;top:58%;width:30%;height:10%;border-radius:6px;background:var(--occ-soft);border:2px solid var(--accent);display:grid;place-items:center;font:600 13px 'IBM Plex Mono';color:var(--accent)">6</div>
+<i style="position:absolute;left:calc(38% - 5px);top:calc(58% - 5px);width:10px;height:10px;background:var(--surface);border:2px solid var(--accent);border-radius:3px"></i>
+<i style="position:absolute;left:calc(68% - 5px);top:calc(58% - 5px);width:10px;height:10px;background:var(--surface);border:2px solid var(--accent);border-radius:3px"></i>
+<i style="position:absolute;left:calc(38% - 5px);top:calc(68% - 5px);width:10px;height:10px;background:var(--surface);border:2px solid var(--accent);border-radius:3px"></i>
+<i style="position:absolute;left:calc(68% - 5px);top:calc(68% - 5px);width:10px;height:10px;background:var(--surface);border:2px solid var(--accent);border-radius:3px"></i>
+</div>
+</div>
+<aside style="width:340px;flex:none;border-right:1px solid var(--line);background:var(--surface);display:flex;flex-direction:column;padding:20px;gap:16px">
+<div style="display:flex;flex-direction:column;gap:8px">
+<div style="font-size:14px;font-weight:600">מצב לימוד</div>
+<div style="border:1.5px solid var(--accent);border-radius:12px;padding:12px;display:flex;gap:10px"><span style="width:18px;height:18px;border-radius:50%;border:5px solid var(--accent);box-sizing:border-box;flex:none;margin-top:2px"></span><div><div style="font-size:15px;font-weight:600">הסתר אחד</div><div style="font-size:13px;color:var(--ink2);line-height:1.5">רק המלבן הנשאל מוסתר, שאר התוויות גלויות</div></div></div>
+<div style="border:1px solid var(--line);border-radius:12px;padding:12px;display:flex;gap:10px"><span style="width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line2);box-sizing:border-box;flex:none;margin-top:2px"></span><div><div style="font-size:15px;font-weight:600">הסתר הכל, חשוף אחד</div><div style="font-size:13px;color:var(--ink2);line-height:1.5">כל המלבנים מוסתרים, הנשאל מודגש</div></div></div>
+</div>
+<div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font-size:14px;font-weight:600">מלבנים</span><span style="font-size:13px;color:var(--ink3)">6 · כרטיס לכל מלבן</span></div>
+<div style="border:1px solid var(--line);border-radius:12px;overflow:hidden">
+<sc-for list="{{ rectsAll }}" as="r" hint-placeholder-count="6">
+<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-bottom:1px solid var(--line);background:{{ r.bg }}"><span style="width:24px;height:24px;border-radius:6px;background:var(--occ-soft);color:var(--hard);display:grid;place-items:center;font:600 12px 'IBM Plex Mono'">{{ r.n }}</span><span dir="ltr" style="flex:1;text-align:right;font-size:14.5px">{{ r.l }}</span><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--ink3)"><path d="M6 6l12 12M18 6L6 18"></path></svg></div>
+</sc-for>
+</div>
+</aside>
+</div>
+</div></div>
+</div>
+</section>
+
+<section class="dv-turn" id="t7">
+<div class="dv-thd"><a class="dv-tid" href="#t7">7</a><span class="dv-tname">ייבוא כרטיסים</span></div>
+<div class="dv-opts">
+<div class="dv-opt" id="7a"><div class="dv-olabel"><a class="dv-oid" href="#7a">7a</a>מובייל · הדבקת JSON + תצוגה מקדימה</div>
+<div style="width:390px;min-height:844px;background:var(--bg);border-radius:32px;border:1px solid var(--line2);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)">
+<div dir="ltr" style="height:44px;flex:none;display:flex;align-items:center;padding:0 28px;font:600 14px 'IBM Plex Sans'">9:41</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 10px;height:52px">
+<div style="width:44px;height:44px;display:grid;place-items:center;color:var(--ink2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"></path></svg></div>
+<div style="font-size:16px;font-weight:600">ייבוא לפיזיולוגיה א'</div>
+<div style="width:44px"></div>
+</div>
+<div style="display:flex;border-bottom:1px solid var(--line);padding:0 16px">
+<div style="flex:1;padding:12px 0;text-align:center;font-size:14.5px;font-weight:600;border-bottom:2px solid var(--accent);color:var(--ink)">הדבק מ-Claude (JSON)</div>
+<div style="flex:1;padding:12px 0;text-align:center;font-size:14.5px;color:var(--ink2)">קובץ CSV / NotebookLM</div>
+</div>
+<div style="padding:16px;display:flex;flex-direction:column;gap:12px;flex:1">
+<div dir="ltr" style="background:var(--surface);border:1px solid var(--line2);border-radius:12px;padding:12px 14px;font:12.5px/1.65 'IBM Plex Mono',monospace;color:var(--ink2);height:150px;overflow:hidden;white-space:pre">[
+  { "type": "basic",
+    "front": "מהו ה-cardiac output?",
+    "back": "CO = HR × SV",
+    "tags": ["לב"] },
+  { "type": "cloze",
+    "text": "עלייה ב-[[EDV]] מגבירה SV" },
+  { "type": "basic", "front": "</div>
+<div style="display:flex;gap:14px;font-size:13.5px"><span style="color:var(--ink)">12 כרטיסים זוהו</span><span style="color:var(--again)">1 שגיאה</span><span style="color:var(--hard)">1 כפילות</span></div>
+<div style="background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden">
+<sc-for list="{{ rowsM }}" as="r" hint-placeholder-count="4">
+<div style="display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--line);background:{{ r.bg }}">
+<span style="width:8px;height:8px;border-radius:50%;margin-top:7px;flex:none;background:{{ r.dot }}"></span>
+<div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:3px"><div style="font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.front }}</div><div style="font-size:12.5px;color:{{ r.noteColor }}">{{ r.note }}</div></div>
+</div>
+</sc-for>
+</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)"><span style="width:18px;height:18px;border-radius:5px;background:var(--accent);display:grid;place-items:center;color:var(--on-accent);font-size:12px">✓</span>דלג על שורות עם שגיאות</div>
+</div>
+<div style="padding:12px 16px 34px"><div style="height:54px;border-radius:14px;background:var(--accent);color:var(--on-accent);display:grid;place-items:center;font-weight:600;font-size:17px">ייבא 11 כרטיסים</div></div>
+</div></div>
+
+<div class="dv-opt" id="7b"><div class="dv-olabel"><a class="dv-oid" href="#7b">7b</a>דסקטופ · CSV עם מיפוי עמודות</div>
+<div style="width:1280px;height:800px;background:var(--bg);border-radius:12px;border:1px solid var(--line2);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)">
+<div dir="ltr" style="height:36px;flex:none;background:var(--surface2);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;padding:0 14px"><i style="width:10px;height:10px;border-radius:50%;background:var(--line2)"></i><i style="width:10px;height:10px;border-radius:50%;background:var(--line2)"></i><i style="width:10px;height:10px;border-radius:50%;background:var(--line2)"></i><span style="margin-left:14px;font:12px 'IBM Plex Mono';color:var(--ink3);background:var(--surface);padding:3px 12px;border-radius:6px">kartisiyot.app/decks/physiology-a/import</span></div>
+<div style="flex:1;display:flex;flex-direction:column;padding:24px 40px;gap:18px;min-height:0">
+<div style="display:flex;align-items:center;justify-content:space-between">
+<div style="display:flex;flex-direction:column;gap:4px"><div style="font-size:13px;color:var(--ink3)">פיזיולוגיה א' ‹ ייבוא</div><div style="font-size:24px;font-weight:700">ייבוא כרטיסים</div></div>
+<div style="display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--ink3)"><span style="color:var(--ink2)">1 מקור</span><span>—</span><span style="color:var(--ink);font-weight:600">2 תצוגה מקדימה</span><span>—</span><span>3 ייבוא</span></div>
+</div>
+<div style="display:flex;border-bottom:1px solid var(--line);gap:24px">
+<div style="padding:10px 0;font-size:15px;color:var(--ink2)">הדבק מ-Claude (JSON)</div>
+<div style="padding:10px 0;font-size:15px;font-weight:600;border-bottom:2px solid var(--accent)">קובץ CSV / NotebookLM</div>
+</div>
+<div style="display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;flex:1;min-height:0">
+<div style="display:flex;flex-direction:column;gap:14px">
+<div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;align-items:center;gap:10px"><span style="font:600 11px 'IBM Plex Mono';padding:6px 6px;border-radius:6px;background:var(--surface2);color:var(--ink2)">CSV</span><div style="flex:1;min-width:0"><div dir="ltr" style="text-align:right;font:500 13.5px 'IBM Plex Mono'">notebooklm_cardio.csv</div><div style="font-size:12.5px;color:var(--ink3)">48 שורות · 4 עמודות</div></div><span style="font-size:13px;color:var(--accent)">החלפה</span></div>
+<div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:12px">
+<div style="font-size:15px;font-weight:600">מיפוי עמודות</div>
+<sc-for list="{{ mapping }}" as="m" hint-placeholder-count="4">
+<div style="display:grid;grid-template-columns:110px 16px minmax(0,1fr);gap:8px;align-items:center">
+<span dir="ltr" style="text-align:right;font:500 13px 'IBM Plex Mono';color:var(--ink2)">{{ m.col }}</span>
+<span style="color:var(--ink3);font-size:13px">←</span>
+<div style="height:36px;border-radius:9px;border:1px solid var(--line2);background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:0 10px;font-size:14px;color:{{ m.color }}">{{ m.to }}<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--ink3)"><path d="M6 9l6 6 6-6"></path></svg></div>
+</div>
+</sc-for>
+<div style="display:flex;align-items:center;gap:8px;font-size:13.5px;color:var(--ink2);padding-top:4px"><span style="width:18px;height:18px;border-radius:5px;background:var(--accent);display:grid;place-items:center;color:var(--on-accent);font-size:12px">✓</span>השורה הראשונה היא כותרות</div>
+</div>
+</div>
+<div style="background:var(--surface);border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;min-height:0">
+<div style="display:flex;gap:16px;padding:12px 16px;border-bottom:1px solid var(--line);font-size:13.5px"><span>48 כרטיסים זוהו</span><span style="color:var(--again)">2 שגיאות</span><span style="color:var(--hard)">1 כפילות</span><span style="margin-right:auto;color:var(--ink3)">הצג: הכל · רק בעיות</span></div>
+<div style="display:grid;grid-template-columns:40px minmax(0,1.2fr) minmax(0,1fr) 120px 170px;gap:12px;padding:9px 16px;font-size:12.5px;color:var(--ink3);border-bottom:1px solid var(--line)"><span>#</span><span>שאלה</span><span>תשובה</span><span>תגיות</span><span>סטטוס</span></div>
+<sc-for list="{{ rows }}" as="r" hint-placeholder-count="8">
+<div style="display:grid;grid-template-columns:40px minmax(0,1.2fr) minmax(0,1fr) 120px 170px;gap:12px;padding:10px 16px;font-size:14px;border-bottom:1px solid var(--line);align-items:center;background:{{ r.bg }}">
+<span style="font:12px 'IBM Plex Mono';color:var(--ink3)">{{ r.i }}</span>
+<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.front }}</span>
+<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ r.backColor }}">{{ r.back }}</span>
+<span style="font-size:13px;color:var(--ink2)">{{ r.tags }}</span>
+<span style="display:flex;align-items:center;gap:6px;font-size:13px;color:{{ r.noteColor }}"><i style="width:7px;height:7px;border-radius:50%;background:{{ r.dot }}"></i>{{ r.note }}</span>
+</div>
+</sc-for>
+</div>
+</div>
+<div style="display:flex;align-items:center;gap:12px;border-top:1px solid var(--line);padding-top:16px">
+<div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)"><span style="width:18px;height:18px;border-radius:5px;background:var(--accent);display:grid;place-items:center;color:var(--on-accent);font-size:12px">✓</span>דלג על שורות עם שגיאות</div>
+<div style="display:flex;align-items:center;gap:8px;font-size:14px;color:var(--ink2)"><span style="width:18px;height:18px;border-radius:5px;border:1.5px solid var(--line2)"></span>ייבא גם כפילויות</div>
+<div style="margin-right:auto;height:44px;padding:0 14px;display:flex;align-items:center;font-size:15px;color:var(--ink2)">חזרה</div>
+<div style="height:44px;padding:0 22px;border-radius:11px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;font-weight:600;font-size:15px">ייבא 45 כרטיסים</div>
+</div>
+</div>
+</div></div>
+</div>
+</section>
+
+<section class="dv-turn" id="t8">
+<div class="dv-thd"><a class="dv-tid" href="#t8">8</a><span class="dv-tname">עורך כרטיס</span></div>
+<div class="dv-opts">
+<div class="dv-opt" id="8a"><div class="dv-olabel"><a class="dv-oid" href="#8a">8a</a>מובייל · סוג השלמה</div>
+<div style="width:390px;min-height:844px;background:var(--bg);border-radius:32px;border:1px solid var(--line2);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)">
+<div dir="ltr" style="height:44px;flex:none;display:flex;align-items:center;padding:0 28px;font:600 14px 'IBM Plex Sans'">9:41</div>
+<div style="display:flex;align-items:center;justify-content:space-between;padding:0 10px;height:52px">
+<div style="width:44px;height:44px;display:grid;place-items:center;color:var(--ink2)"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 6l12 12M18 6L6 18"></path></svg></div>
+<div style="font-size:16px;font-weight:600">כרטיס חדש</div>
+<div style="padding:0 10px;font-size:15px;font-weight:600;color:var(--accent)">שמירה</div>
+</div>
+<div style="padding:4px 16px 20px;display:flex;flex-direction:column;gap:16px">
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface2);border-radius:11px;padding:3px;gap:3px">
+<div style="height:38px;display:grid;place-items:center;font-size:14px;color:var(--ink2)">רגיל</div>
+<div style="height:38px;display:grid;place-items:center;font-size:14px;font-weight:600;background:var(--surface);border-radius:9px;box-shadow:var(--shadow)">השלמה</div>
+<div style="height:38px;display:grid;place-items:center;font-size:14px;color:var(--ink2)">תמונה</div>
+<div style="height:38px;display:grid;place-items:center;font-size:14px;color:var(--ink2)">בעיה</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink2)">חפיסה</span><div style="height:44px;border-radius:11px;border:1px solid var(--line2);background:var(--surface);display:flex;align-items:center;justify-content:space-between;padding:0 12px;font-size:15px">פיזיולוגיה א'<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--ink3)"><path d="M6 9l6 6 6-6"></path></svg></div></div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--ink2)">טקסט</span><span style="font-size:12.5px;color:var(--ink3)">סמנו מילה והקישו "השלמה"</span></div>
+<div style="border-radius:11px;border:1.5px solid var(--accent);background:var(--surface);padding:12px;font-size:16px;line-height:1.75;min-height:96px">לפי חוק <bdi>Frank–Starling</bdi>, עלייה ב-<span style="background:var(--cloze-soft);color:var(--cloze);border-radius:4px;padding:0 4px;font-weight:600"><bdi>EDV</bdi></span> מגבירה את נפח הפעימה (<bdi>SV</bdi>).</div>
+<div style="display:flex;gap:6px"><div style="height:36px;padding:0 12px;border-radius:9px;background:var(--cloze-soft);color:var(--cloze);display:flex;align-items:center;font-size:14px;font-weight:600">[…] השלמה</div><div dir="ltr" style="height:36px;padding:0 12px;border-radius:9px;background:var(--surface);border:1px solid var(--line2);display:flex;align-items:center;font:italic 15px 'STIX Two Text',serif">f(x)</div><div style="height:36px;padding:0 12px;border-radius:9px;background:var(--surface);border:1px solid var(--line2);display:flex;align-items:center;font-size:14px">תמונה</div></div>
+<div style="display:flex;gap:4px;align-items:center;background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:4px"><span style="font-size:12px;color:var(--ink3);padding:0 6px">נוסחה</span><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);font:italic 15px 'STIX Two Text',serif"><span style="display:inline-flex;flex-direction:column;align-items:center;font:italic 11px/1.1 'STIX Two Text',serif"><span>a</span><span style="border-top:1.2px solid currentColor;padding:0 2px">b</span></span></div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">√x</div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">x<sup style="font-size:9px">n</sup></div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">x<sub style="font-size:9px">n</sub></div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">±</div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">≤</div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:15px 'STIX Two Text',serif">⇌</div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:15px 'STIX Two Text',serif">X<span style="display:inline-flex;flex-direction:column;vertical-align:middle;font-size:.62em;line-height:1;margin-right:.05em;text-align:left"><span style="height:1em">+</span><span style="height:1em;margin-top:.15em"></span></span></div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:15px 'STIX Two Text',serif">H<span style="display:inline-flex;flex-direction:column;vertical-align:middle;font-size:.62em;line-height:1;margin-right:.05em;text-align:left"><span style="height:1em"></span><span style="height:1em;margin-top:.15em">2</span></span></div></div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink2)">הערה בצד התשובה (לא חובה)</span><div style="border-radius:11px;border:1px solid var(--line2);background:var(--surface);padding:12px;font-size:15px;color:var(--ink3);min-height:44px">מתיחה גדולה יותר של סיבי השריר…</div></div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink2)">תגיות</span><div style="display:flex;flex-wrap:wrap;gap:6px;border-radius:11px;border:1px solid var(--line2);background:var(--surface);padding:8px"><span style="font-size:13px;padding:5px 10px;border-radius:999px;background:var(--surface2)">לב ×</span><span style="font-size:13px;padding:5px 10px;border-radius:999px;background:var(--surface2)">המודינמיקה ×</span><span style="font-size:13px;padding:5px 4px;color:var(--ink3)">הוסף תגית…</span></div></div>
+<div style="display:flex;flex-direction:column;gap:8px">
+<span style="font-size:13px;color:var(--ink2)">תצוגה מקדימה · צד שאלה</span>
+<div style="background:var(--surface);border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:20px;font-size:18px;font-weight:500;line-height:1.75">לפי חוק <bdi>Frank–Starling</bdi>, עלייה ב-<span style="background:var(--cloze-soft);color:var(--cloze);border-bottom:2px solid var(--cloze);border-radius:5px 5px 2px 2px;padding:0 8px;font-weight:600">[ … ]</span> מגבירה את נפח הפעימה (<bdi>SV</bdi>).</div>
+</div>
+</div>
+</div></div>
+
+<div class="dv-opt" id="8b"><div class="dv-olabel"><a class="dv-oid" href="#8b">8b</a>דסקטופ · סוג רגיל עם נוסחה</div>
+<div style="width:1280px;height:800px;background:var(--bg);border-radius:12px;border:1px solid var(--line2);overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow)">
+<div dir="ltr" style="height:36px;flex:none;background:var(--surface2);border-bottom:1px solid var(--line);display:flex;align-items:center;gap:7px;padding:0 14px"><i style="width:10px;height:10px;border-radius:50%;background:var(--line2)"></i><i style="width:10px;height:10px;border-radius:50%;background:var(--line2)"></i><i style="width:10px;height:10px;border-radius:50%;background:var(--line2)"></i><span style="margin-left:14px;font:12px 'IBM Plex Mono';color:var(--ink3);background:var(--surface);padding:3px 12px;border-radius:6px">kartisiyot.app/decks/physiology-a/cards/new</span></div>
+<div style="height:60px;flex:none;display:flex;align-items:center;justify-content:space-between;padding:0 28px;border-bottom:1px solid var(--line);background:var(--surface)">
+<div style="display:flex;align-items:center;gap:12px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" style="color:var(--ink2)"><path d="M9 6l6 6-6 6"></path></svg><span style="font-size:17px;font-weight:600">כרטיס חדש</span><span style="font-size:14px;color:var(--ink3)">פיזיולוגיה א'</span></div>
+<div style="display:flex;gap:8px"><div style="height:38px;padding:0 14px;border-radius:10px;background:var(--surface);border:1px solid var(--line2);display:flex;align-items:center;font-size:14px">שמירה והוספת עוד</div><div style="height:38px;padding:0 18px;border-radius:10px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;font-size:14px;font-weight:600">שמירה</div></div>
+</div>
+<div style="flex:1;display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);min-height:0">
+<div style="padding:24px 32px;display:flex;flex-direction:column;gap:18px;border-left:1px solid var(--line)">
+<div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:var(--surface2);border-radius:11px;padding:3px;gap:3px;width:440px">
+<div style="height:36px;display:grid;place-items:center;font-size:14px;font-weight:600;background:var(--surface);border-radius:9px;box-shadow:var(--shadow)">רגיל</div>
+<div style="height:36px;display:grid;place-items:center;font-size:14px;color:var(--ink2)">השלמה</div>
+<div style="height:36px;display:grid;place-items:center;font-size:14px;color:var(--ink2)">תמונה</div>
+<div style="height:36px;display:grid;place-items:center;font-size:14px;color:var(--ink2)">בעיה</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink2)">צד שאלה</span><div style="border-radius:11px;border:1px solid var(--line2);background:var(--surface);padding:12px 14px;font-size:16px;line-height:1.7;min-height:70px">מהו ה-<bdi>cardiac output</bdi> של אדם בריא במנוחה, ואיך מחשבים אותו?</div></div>
+<div style="display:flex;flex-direction:column;gap:6px">
+<div style="display:flex;justify-content:space-between"><span style="font-size:13px;color:var(--ink2)">צד תשובה</span><span style="font-size:12.5px;color:var(--ink3)">נוסחאות נכתבות ב-<bdi>LaTeX</bdi> ומוצגות מיד</span></div>
+<div style="border-radius:11px;border:1.5px solid var(--accent);background:var(--surface);overflow:visible;position:relative">
+<div style="display:flex;flex-wrap:wrap;align-items:center;gap:2px;padding:5px 6px;border-bottom:1px solid var(--line)">
+<div style="height:32px;padding:0 10px;border-radius:7px;display:flex;align-items:center;gap:6px;background:var(--accent);color:var(--on-accent);font-size:13px;font-weight:600"><span dir="ltr" style="font:italic 14px 'STIX Two Text',serif">f(x)</span>נוסחה</div>
+<span style="width:1px;height:18px;background:var(--line);margin:0 4px"></span>
+<div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;background:var(--accent-soft);color:var(--accent);font:italic 15px 'STIX Two Text',serif"><span style="display:inline-flex;flex-direction:column;align-items:center;font:italic 11px/1.1 'STIX Two Text',serif"><span>a</span><span style="border-top:1.2px solid currentColor;padding:0 2px">b</span></span></div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">√x</div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">x<sup style="font-size:9px">n</sup></div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">x<sub style="font-size:9px">n</sub></div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">Σ</div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">±</div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">≤</div><div dir="ltr" style="height:32px;min-width:32px;padding:0 8px;border-radius:7px;display:flex;align-items:center;justify-content:center;color:var(--ink2);font:italic 15px 'STIX Two Text',serif">→</div><span style="width:1px;height:18px;background:var(--line);margin:0 4px"></span><div style="height:32px;padding:0 10px;border-radius:7px;display:flex;align-items:center;gap:6px;border:1px solid var(--line2);font-size:13px;font-weight:500;color:var(--ink2)"><span dir="ltr" style="font:14px 'STIX Two Text',serif">H<span style="display:inline-flex;flex-direction:column;vertical-align:middle;font-size:.62em;line-height:1;margin-right:.05em;text-align:left"><span style="height:1em"></span><span style="height:1em;margin-top:.15em">2</span></span>O</span>כימיה</div><div style="height:32px;padding:0 9px;border-radius:7px;display:flex;align-items:center;gap:6px;background:var(--accent-soft);color:var(--accent);font-size:12.5px"><span dir="ltr" style="font:16px 'STIX Two Text',serif">X<span style="display:inline-flex;flex-direction:column;vertical-align:middle;font-size:.62em;line-height:1;margin-right:.05em;text-align:left"><span style="height:1em"></span><span style="height:1em;margin-top:.15em">2</span></span></span>מספר למטה</div><div style="height:32px;padding:0 9px;border-radius:7px;display:flex;align-items:center;gap:6px;color:var(--ink2);font-size:12.5px"><span dir="ltr" style="font:16px 'STIX Two Text',serif">X<span style="display:inline-flex;flex-direction:column;vertical-align:middle;font-size:.62em;line-height:1;margin-right:.05em;text-align:left"><span style="height:1em">2+</span><span style="height:1em;margin-top:.15em"></span></span></span>מטען</div><div style="height:32px;padding:0 9px;border-radius:7px;display:flex;align-items:center;gap:6px;color:var(--ink2);font-size:12.5px"><span dir="ltr" style="font:16px 'STIX Two Text',serif">⇌</span>שיווי משקל</div>
+</div>
+<div style="padding:12px 14px 16px;font-size:16px;line-height:1.8;display:flex;flex-direction:column;gap:8px">
+<div dir="ltr" style="text-align:right;font-family:'STIX Two Text',serif;font-size:19px"><span style="padding:0 4px;border-radius:4px;background:var(--surface2)"><i>CO</i> = <i>HR</i> × <i>SV</i></span></div>
+<div>כ-5 ליטר לדקה במבוגר בריא. לפי עקרון <bdi>Fick</bdi>:</div>
+<div dir="ltr" style="text-align:right;font-family:'STIX Two Text',serif;font-size:19px"><span style="display:inline-flex;align-items:center;padding:6px 8px;border-radius:6px;background:var(--accent-soft);box-shadow:inset 0 0 0 1.5px var(--accent);line-height:1.2"><i>CO</i> = <span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .15em;line-height:1.25"><span style="padding:0 .25em .1em"><i>V̇O</i><sub>2</sub></span><span style="border-top:1.5px solid currentColor;padding:.1em .25em 0;align-self:stretch;text-align:center"><i>C</i><sub>a</sub> − <i>C</i><sub>v</sub></span></span></span></div>
+</div>
+<div style="position:absolute;top:88px;left:-24px;width:360px;background:var(--surface);border:1px solid var(--line2);border-radius:12px;box-shadow:0 12px 32px rgba(20,22,24,.14);padding:12px;display:flex;flex-direction:column;gap:10px;z-index:2">
+<div style="display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink3)"><span>עריכת נוסחה</span><span dir="ltr" style="font-family:'IBM Plex Mono'">LaTeX</span></div>
+<div dir="ltr" style="border-radius:8px;border:1px solid var(--line2);background:var(--bg);padding:8px 10px;font:13px 'IBM Plex Mono',monospace;color:var(--ink)">CO = \frac{\dot{V}O_2}{C_a - C_v}<span style="display:inline-block;width:1.5px;height:14px;background:var(--accent);vertical-align:middle;margin-left:1px"></span></div>
+<div dir="ltr" style="display:flex;justify-content:center;align-items:center;padding:10px;border-radius:8px;background:var(--surface2);font-family:'STIX Two Text',serif;font-size:24px"><i>CO</i> = <span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .15em;line-height:1.25"><span style="padding:0 .25em .1em"><i>V̇O</i><sub>2</sub></span><span style="border-top:1.5px solid currentColor;padding:.1em .25em 0;align-self:stretch;text-align:center"><i>C</i><sub>a</sub> − <i>C</i><sub>v</sub></span></span></div>
+<div style="display:flex;gap:6px;justify-content:flex-start"><div style="height:32px;padding:0 14px;border-radius:8px;background:var(--accent);color:var(--on-accent);display:flex;align-items:center;font-size:13px;font-weight:600">עדכון</div><div style="height:32px;padding:0 10px;border-radius:8px;display:flex;align-items:center;font-size:13px;color:var(--ink2)">ביטול</div></div>
+</div>
+</div>
+</div>
+<div style="display:flex;flex-direction:column;gap:6px"><span style="font-size:13px;color:var(--ink2)">תגיות</span><div style="display:flex;flex-wrap:wrap;gap:6px;border-radius:11px;border:1px solid var(--line2);background:var(--surface);padding:8px"><span style="font-size:13px;padding:5px 10px;border-radius:999px;background:var(--surface2)">לב ×</span><span style="font-size:13px;padding:5px 10px;border-radius:999px;background:var(--surface2)">המודינמיקה ×</span><span style="font-size:13px;padding:5px 4px;color:var(--ink3)">הוסף תגית…</span></div></div>
+</div>
+<div style="padding:24px 32px;display:flex;flex-direction:column;gap:14px;background:var(--surface2)">
+<div style="display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;font-weight:600">תצוגה מקדימה</span><div style="display:flex;background:var(--bg);border-radius:9px;padding:3px;gap:3px"><span style="font-size:13px;padding:5px 12px;color:var(--ink2)">שאלה</span><span style="font-size:13px;padding:5px 12px;background:var(--surface);border-radius:7px;font-weight:600">תשובה</span></div></div>
+<div style="background:var(--surface);border:1px solid var(--line);border-radius:22px;box-shadow:var(--shadow);padding:32px;display:flex;flex-direction:column;gap:18px">
+<div style="font-size:12.5px;color:var(--ink3)">לב · המודינמיקה</div>
+<div style="font-size:19px;font-weight:500;line-height:1.6;color:var(--ink2)">מהו ה-<bdi>cardiac output</bdi> של אדם בריא במנוחה, ואיך מחשבים אותו?</div>
+<div style="height:1px;background:var(--line)"></div>
+<div dir="ltr" style="text-align:center;font-family:'STIX Two Text',serif;font-size:30px"><i>CO</i> = <i>HR</i> × <i>SV</i></div>
+<div style="font-size:16px;line-height:1.7">כ-5 ליטר לדקה במבוגר בריא. לפי עקרון <bdi>Fick</bdi>:</div>
+<div dir="ltr" style="text-align:center;font-family:'STIX Two Text',serif;font-size:28px"><i>CO</i> = <span style="display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;margin:0 .15em;line-height:1.25"><span style="padding:0 .25em .1em"><i>V̇O</i><sub>2</sub></span><span style="border-top:1.5px solid currentColor;padding:.1em .25em 0;align-self:stretch;text-align:center"><i>C</i><sub>a</sub> − <i>C</i><sub>v</sub></span></span></div>
+</div>
+<div style="font-size:12.5px;color:var(--ink3)">התצוגה מתעדכנת בזמן ההקלדה</div>
+</div>
+</div>
+</div></div>
+</div>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;light&quot;,&quot;dark&quot;],&quot;default&quot;:&quot;light&quot;,&quot;tsType&quot;:&quot;'light'|'dark'&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const rects = [
+      { n: 1, x: '44%', y: '8%', w: '18%', h: '9%', l: 'Aorta' },
+      { n: 2, x: '58%', y: '24%', w: '28%', h: '9%', l: 'Pulmonary trunk' },
+      { n: 3, x: '14%', y: '16%', w: '14%', h: '9%', l: 'Superior vena cava' },
+      { n: 4, x: '8%', y: '40%', w: '24%', h: '9%', l: 'Right atrium' },
+      { n: 5, x: '20%', y: '76%', w: '26%', h: '9%', l: 'Right ventricle' }
+    ];
+    const rectsAll = [...rects, { n: 6, l: 'Left ventricle', sel: true }].map(r => ({ ...r, bg: r.sel ? 'var(--accent-soft)' : 'transparent' }));
+    const st = {
+      ok: { dot: 'var(--good)', noteColor: 'var(--ink3)', bg: 'transparent', note: 'תקין' },
+      err: { dot: 'var(--again)', noteColor: 'var(--again)', bg: 'var(--again-soft)' },
+      dup: { dot: 'var(--hard)', noteColor: 'var(--hard)', bg: 'var(--hard-soft)' }
+    };
+    const rows = [
+      { i: 1, front: 'מהו ה-cardiac output במנוחה?', back: 'CO = HR × SV ≈ 5 L/min', tags: 'לב', s: 'ok' },
+      { i: 2, front: 'מה קובע את ה-preload?', back: 'EDV, החזר ורידי', tags: 'לב', s: 'ok' },
+      { i: 3, front: 'הגדרת ejection fraction', back: '', tags: 'לב', s: 'err', note: 'חסר צד תשובה' },
+      { i: 4, front: 'מהו ה-cardiac output במנוחה?', back: 'כ-5 ליטר לדקה', tags: 'לב', s: 'dup', note: 'כפילות של כרטיס קיים' },
+      { i: 5, front: 'משוואת Fick לתפוקת לב', back: 'CO = VO₂ / (Ca − Cv)', tags: 'לב, נשימה', s: 'ok' },
+      { i: 6, front: 'Mean arterial pressure', back: 'MAP ≈ DBP + ⅓(SBP − DBP)', tags: 'לב', s: 'ok' },
+      { i: 7, front: '', back: 'Afterload', tags: '', s: 'err', note: 'חסר צד שאלה' },
+      { i: 8, front: 'Poiseuille: תלות הזרימה ברדיוס', back: 'Q ∝ r⁴', tags: 'המודינמיקה', s: 'ok' }
+    ].map(r => ({ ...st[r.s], ...r, backColor: r.back ? 'var(--ink2)' : 'var(--ink3)', back: r.back || '—' }));
+    const rowsM = [rows[0], rows[2], rows[3], rows[4]];
+    const mapping = [
+      { col: 'Question', to: 'צד שאלה', color: 'var(--ink)' },
+      { col: 'Answer', to: 'צד תשובה', color: 'var(--ink)' },
+      { col: 'Tags', to: 'תגיות', color: 'var(--ink)' },
+      { col: 'Source', to: 'התעלם מהעמודה', color: 'var(--ink3)' }
+    ];
+    return { theme: this.props.theme ?? 'light', rects, rectsAll, rows, rowsM, mapping };
+  }
+}
+</script>
+</body>
+</html>
