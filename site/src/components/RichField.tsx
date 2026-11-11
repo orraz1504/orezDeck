@@ -1,56 +1,18 @@
-import { useRef, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useRef, useState, type ReactNode } from 'react'
 import { RichText } from './RichText'
 
-interface Snippet {
-  label: ReactNode
-  /** LaTeX to insert; `▮` marks where the selection / cursor goes. */
-  tex: string
-  title: string
-  text?: boolean
-}
-
-const MATH: Snippet[] = [
-  {
-    title: 'שבר',
-    tex: '\\frac{▮}{}',
-    label: (
-      <span style={{ display: 'inline-flex', flexDirection: 'column', alignItems: 'center', font: 'italic 11px/1.1 var(--font-math)' }}>
-        <span>a</span>
-        <span style={{ borderTop: '1.2px solid currentColor', padding: '0 2px' }}>b</span>
-      </span>
-    ),
-  },
-  { title: 'שורש', tex: '\\sqrt{▮}', label: '√x' },
-  { title: 'חזקה', tex: '^{▮}', label: <>x<sup style={{ fontSize: 9 }}>n</sup></> },
-  { title: 'אינדקס', tex: '_{▮}', label: <>x<sub style={{ fontSize: 9 }}>n</sub></> },
-  { title: 'סכום', tex: '\\sum_{i=1}^{n} ▮', label: 'Σ' },
-  { title: 'פלוס-מינוס', tex: '\\pm ▮', label: '±' },
-  { title: 'קטן או שווה', tex: '\\le ▮', label: '≤' },
-  { title: 'חץ', tex: '\\to ▮', label: '→' },
-]
-
-const CHEM: Snippet[] = [
-  { title: 'כימיה (\\ce): H2O, CO2 + H2O <=> H2CO3', tex: '\\ce{▮}', label: <span style={{ fontStyle: 'normal' }}>H₂O</span> },
-  { title: 'מספר למטה', tex: '_{▮}', label: <>X<sub style={{ fontSize: 9 }}>2</sub></>, text: false },
-  { title: 'מטען', tex: '^{▮}', label: <>X<sup style={{ fontSize: 9 }}>2+</sup></> },
-  { title: 'שיווי משקל', tex: ' \\rightleftharpoons ▮', label: '⇌' },
-]
+// MathLive is large; load the editor only when it's opened.
+const MathEditor = lazy(() => import('./MathEditor').then((m) => ({ default: m.MathEditor })))
 
 /** The $…$ / $$…$$ formula around the caret, if any. */
-export function formulaAt(text: string, pos: number): { tex: string; display: boolean } | null {
+export function formulaAt(text: string, pos: number): { tex: string; display: boolean; start: number; end: number } | null {
   const re = /\$\$([\s\S]+?)\$\$|\$([^$\n]+?)\$/g
   for (const m of text.matchAll(re)) {
     if (pos > m.index && pos < m.index + m[0].length) {
-      return { tex: (m[1] ?? m[2]).trim(), display: m[1] !== undefined }
+      return { tex: (m[1] ?? m[2]).trim(), display: m[1] !== undefined, start: m.index, end: m.index + m[0].length }
     }
   }
   return null
-}
-
-/** Is the caret currently inside $…$? (odd number of unescaped $ before it) */
-function insideMath(text: string, pos: number): boolean {
-  const before = text.slice(0, pos).replace(/\\\$/g, '')
-  return ((before.match(/\$/g) ?? []).length & 1) === 1
 }
 
 interface Props {
@@ -58,64 +20,58 @@ interface Props {
   onChange: (v: string) => void
   placeholder?: string
   rows?: number
-  /** Show the formula toolbar (shown while the field has focus). */
+  /** Show the formula button and live formula preview. */
   math?: boolean
-  /** Extra toolbar buttons, e.g. the cloze button. Receive the textarea. */
+  /** Extra toolbar buttons, e.g. the cloze button. */
   extra?: (api: { getEl: () => HTMLTextAreaElement | null; replace: (v: string, caret?: number) => void }) => ReactNode
   autoFocus?: boolean
+}
+
+interface EditTarget {
+  start: number
+  end: number
+  tex: string
+  display: boolean
+  editing: boolean
 }
 
 export function RichField({ value, onChange, placeholder, rows = 3, math = true, extra, autoFocus }: Props) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const [caret, setCaret] = useState<number | null>(null)
+  const [target, setTarget] = useState<EditTarget | null>(null)
   const trackCaret = () => setCaret(ref.current?.selectionStart ?? null)
   const formula = math && caret !== null ? formulaAt(value, caret) : null
 
-  const replace = (v: string, caret?: number) => {
+  const replace = (v: string, caretPos?: number) => {
     onChange(v)
-    if (caret !== undefined) {
+    if (caretPos !== undefined) {
       requestAnimationFrame(() => {
         ref.current?.focus()
-        ref.current?.setSelectionRange(caret, caret)
+        ref.current?.setSelectionRange(caretPos, caretPos)
       })
     }
   }
 
-  const insert = (tex: string) => {
+  /** Open the visual editor on the formula under the caret, or for a new one. */
+  const openEditor = () => {
     const el = ref.current
-    if (!el) return
-    const { selectionStart: s, selectionEnd: e } = el
-    const sel = value.slice(s, e)
-    let snippet = tex.replace('▮', sel)
-    let caretOffset = tex.indexOf('▮') + sel.length
-    if (!insideMath(value, s)) {
-      snippet = `$${snippet}$`
-      caretOffset += 1
-    }
-    replace(value.slice(0, s) + snippet + value.slice(e), s + caretOffset)
+    const s = el?.selectionStart ?? value.length
+    const e = el?.selectionEnd ?? value.length
+    const f = formulaAt(value, s)
+    if (f) setTarget({ ...f, editing: true })
+    else setTarget({ start: s, end: e, tex: value.slice(s, e), display: false, editing: false })
   }
 
-  const wrapMath = () => {
-    const el = ref.current
-    if (!el) return
-    const { selectionStart: s, selectionEnd: e } = el
-    const sel = value.slice(s, e)
-    replace(`${value.slice(0, s)}$${sel}$${value.slice(e)}`, s + 1 + sel.length)
+  const applyFormula = (tex: string, display: boolean) => {
+    if (!target) return
+    const wrapped = display ? `$$${tex}$$` : `$${tex}$`
+    const before = value.slice(0, target.start)
+    const after = value.slice(target.end)
+    // Display formulas sit on their own line.
+    const pre = display && before && !before.endsWith('\n') ? '\n' : ''
+    const post = display && after && !after.startsWith('\n') ? '\n' : ''
+    replace(before + pre + wrapped + post + after, (before + pre + wrapped).length)
   }
-
-  const btn = (sn: Snippet) => (
-    <button
-      key={sn.title}
-      type="button"
-      className="toolbar__btn"
-      title={sn.title}
-      dir="ltr"
-      onMouseDown={(ev) => ev.preventDefault()}
-      onClick={() => insert(sn.tex)}
-    >
-      {sn.label}
-    </button>
-  )
 
   return (
     <div className="rich-field">
@@ -123,24 +79,18 @@ export function RichField({ value, onChange, placeholder, rows = 3, math = true,
         <div className="toolbar rich-field__toolbar">
           {extra?.({ getEl: () => ref.current, replace })}
           {math && (
-            <>
-              <button
-                type="button"
-                className="toolbar__btn toolbar__btn--text"
-                onMouseDown={(ev) => ev.preventDefault()}
-                onClick={wrapMath}
-                title="נוסחה ($…$)"
-              >
-                <span dir="ltr" style={{ font: 'italic 14px var(--font-math)' }}>
-                  f(x)
-                </span>
-                נוסחה
-              </button>
-              <span className="toolbar__sep" />
-              {MATH.map(btn)}
-              <span className="toolbar__sep" />
-              {CHEM.map(btn)}
-            </>
+            <button
+              type="button"
+              className="toolbar__btn toolbar__btn--text toolbar__btn--formula"
+              onMouseDown={(ev) => ev.preventDefault()}
+              onClick={openEditor}
+              title="עורך נוסחאות חזותי"
+            >
+              <span dir="ltr" style={{ font: 'italic 15px var(--font-math)' }}>
+                f(x)
+              </span>
+              {formula ? 'עריכת נוסחה' : 'נוסחה'}
+            </button>
           )}
         </div>
       )}
@@ -165,12 +115,28 @@ export function RichField({ value, onChange, placeholder, rows = 3, math = true,
         <div className="formula-preview">
           <div className="row" style={{ justifyContent: 'space-between', fontSize: 12.5, color: 'var(--ink3)' }}>
             <span>תצוגת הנוסחה</span>
-            <span className="mono" dir="ltr">
-              LaTeX
-            </span>
+            <button
+              type="button"
+              style={{ color: 'var(--accent)', fontSize: 13, fontWeight: 600 }}
+              onMouseDown={(ev) => ev.preventDefault()}
+              onClick={openEditor}
+            >
+              עריכה בעורך
+            </button>
           </div>
           <RichText text={`$$${formula.tex}$$`} />
         </div>
+      )}
+      {target && (
+        <Suspense fallback={null}>
+          <MathEditor
+            initial={target.tex}
+            display={target.display}
+            editing={target.editing}
+            onSubmit={applyFormula}
+            onClose={() => setTarget(null)}
+          />
+        </Suspense>
       )}
     </div>
   )

@@ -1,10 +1,17 @@
+import type { CSSProperties } from 'react'
 import { useImage } from '../data/store'
+import { answerFit, questionFit } from '../lib/fit'
 import type { Card, ProblemVariant } from '../lib/types'
 import { Icon } from './Icon'
 import { OcclusionImage } from './OcclusionImage'
 import { RichText } from './RichText'
 
 const MODE_LABEL = { hideOne: 'הסתר אחד', hideAll: 'הסתר הכל, חשוף אחד' } as const
+
+/** CSS variables that scale the question / answer text to the amount of content. */
+function fitVars(q: string | undefined, a: string | undefined): CSSProperties {
+  return { '--qfit': questionFit(q), '--afit': answerFit(a) } as CSSProperties
+}
 
 function TagLine({ tags }: { tags: string[] }) {
   return <span dir="auto">{tags.join(' · ')}</span>
@@ -16,7 +23,7 @@ export function CardFace({ card, revealed }: { card: Card; revealed: boolean }) 
 
   if (card.type === 'cloze') {
     return (
-      <div className={`study-card ${revealed ? '' : 'study-card--min'}`}>
+      <div className={`study-card ${revealed ? '' : 'study-card--min'}`} style={fitVars(card.text, card.back)}>
         <div className="study-card__head">
           <TagLine tags={card.tags} />
           <span style={{ color: 'var(--cloze)' }}>השלמה</span>
@@ -38,7 +45,7 @@ export function CardFace({ card, revealed }: { card: Card; revealed: boolean }) 
 
   // basic (and problem fallback)
   return (
-    <div className={`study-card ${revealed ? '' : 'study-card--min'}`}>
+    <div className={`study-card ${revealed ? '' : 'study-card--min'}`} style={fitVars(card.front, card.back)}>
       {card.tags.length > 0 && (
         <div className="study-card__head">
           <TagLine tags={card.tags} />
@@ -97,7 +104,7 @@ export function ProblemPrompt({
 }) {
   const total = card.variants?.length ?? 1
   return (
-    <div className="study-card" style={{ padding: '22px 20px', gap: 16 }}>
+    <div className="study-card" style={{ padding: '22px 20px', gap: 16, ...fitVars(undefined, variant.front) }}>
       <div className="study-card__head">
         <span dir="auto">בעיה{card.group ? ` · ${card.group}` : ''}</span>
         {total > 1 && (

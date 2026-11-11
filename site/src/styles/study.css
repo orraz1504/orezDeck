@@ -250,19 +250,19 @@
 }
 
 .study-card__q {
-  font-size: 23px;
+  font-size: calc(23px * var(--qfit, 1));
   font-weight: 500;
   line-height: 1.6;
   text-wrap: pretty;
 }
 
 .study-card__q--answered {
-  font-size: 19px;
+  font-size: calc(19px * min(var(--qfit, 1), 1));
   color: var(--ink2);
 }
 
 .study-card__a {
-  font-size: 16px;
+  font-size: calc(16px * var(--afit, 1));
   line-height: 1.7;
 }
 
@@ -271,7 +271,7 @@
 }
 
 .study-card__note {
-  font-size: 15px;
+  font-size: calc(15px * var(--afit, 1));
   line-height: 1.7;
   color: var(--ink2);
 }
@@ -293,16 +293,16 @@
   }
 
   .study-card__q {
-    font-size: 25px;
+    font-size: calc(25px * var(--qfit, 1));
   }
 
   .study-card__q--answered {
-    font-size: 24px;
+    font-size: calc(24px * min(var(--qfit, 1), 1));
     color: var(--ink);
   }
 
   .study-card__a {
-    font-size: 17px;
+    font-size: calc(17px * var(--afit, 1));
   }
 
   .study-card--min {
@@ -953,4 +953,111 @@
 
 .formula-preview .math-block {
   font-size: 1.35em;
+}
+
+/* ───────────────────────── Card flip (reveal) ───────────────────────── */
+
+.flip-stage {
+  perspective: 1600px;
+}
+
+.flip-out {
+  animation: flip-out 0.15s ease-in both;
+}
+
+.flip-in {
+  animation: flip-in 0.22s cubic-bezier(0.2, 0.7, 0.3, 1) both;
+}
+
+.card-enter {
+  animation: card-enter 0.2s ease-out both;
+}
+
+@keyframes flip-out {
+  to {
+    transform: rotateY(90deg);
+  }
+}
+
+@keyframes flip-in {
+  from {
+    transform: rotateY(-90deg);
+  }
+}
+
+@keyframes card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flip-out,
+  .flip-in,
+  .card-enter {
+    animation: none;
+  }
+}
+
+/* ───────────────────────── Visual formula editor ───────────────────────── */
+
+.math-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.math-editor__tabs {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.math-editor__palette {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+
+.math-editor__palette .toolbar__btn {
+  min-width: 40px;
+  height: 38px;
+  font: 17px var(--font-math);
+  color: var(--ink);
+}
+
+.math-editor__host {
+  min-height: 72px;
+  display: grid;
+}
+
+math-field.math-editor__field {
+  width: 100%;
+  min-height: 72px;
+  font-size: 26px;
+  padding: 10px 12px;
+  border: 1.5px solid var(--accent);
+  border-radius: var(--r-md);
+  background: var(--surface);
+  color: var(--ink);
+  --caret-color: var(--accent);
+  --selection-background-color: var(--accent-soft);
+  --contains-highlight-background-color: transparent;
+  --placeholder-color: var(--accent);
+  --primary: var(--accent);
+}
+
+math-field.math-editor__field::part(menu-toggle) {
+  display: none;
+}
+
+.toolbar__btn--formula {
+  background: var(--accent-soft);
+  color: var(--accent);
+  font-weight: 600;
 }

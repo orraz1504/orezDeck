@@ -78,6 +78,12 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
   const [plan] = useState(() => planSession(cards, deck.roundNumber, mode, size))
   const [session, setSession] = useState<SessionState>(() => startSession(plan.ids))
   const [revealed, setRevealed] = useState(false)
+  /** Half-way through the flip animation (question turning away). */
+  const [flipping, setFlipping] = useState(false)
+  const flipTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => () => {
+    if (flipTimer.current) clearTimeout(flipTimer.current)
+  }, [])
   const [stepsShown, setStepsShown] = useState(0)
   const [startedAt] = useState(() => Date.now())
   /** Progress written during this session (the listener may lag a tick behind). */
@@ -138,8 +144,17 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
       const next = Math.min(totalSteps, stepsShown + 1)
       setStepsShown(next)
       if (next >= totalSteps) setRevealed(true)
-    } else setRevealed(true)
-  }, [variant, totalSteps, stepsShown])
+    } else if (!flipping) {
+      // Turn the question away, then show the answer turning in.
+      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+      if (reduce) return setRevealed(true)
+      setFlipping(true)
+      flipTimer.current = setTimeout(() => {
+        setFlipping(false)
+        setRevealed(true)
+      }, 150)
+    }
+  }, [variant, totalSteps, stepsShown, flipping])
 
   const revealAll = () => {
     setStepsShown(totalSteps)
@@ -233,7 +248,11 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
             {stepsShown > 0 && <ProblemSteps variant={variant} shown={stepsShown} />}
           </div>
         ) : (
-          <CardFace card={current} revealed={revealed} />
+          <div className="flip-stage">
+            <div key={`${current.id}:${revealed}`} className={revealed ? 'flip-in' : flipping ? 'flip-out' : 'card-enter'}>
+              <CardFace card={current} revealed={revealed} />
+            </div>
+          </div>
         )}
       </div>
 
