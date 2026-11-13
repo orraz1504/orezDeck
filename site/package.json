@@ -18,7 +18,7 @@
     "@fontsource/stix-two-text": "5.3.0",
     "firebase": "^13.2.0",
     "katex": "^0.19.1",
-    "mathlive": "0.111.1",
+    "mathlive": "0.111.4",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5"
