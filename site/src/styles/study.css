@@ -1498,3 +1498,9 @@ math-field.math-editor__field {
   font-weight: 700;
   white-space: nowrap;
 }
+
+/* Chemistry keys ₂ ⁺ ⁻: the glyphs are tiny by nature, so draw them large */
+.ML__keyboard .MLK__keycap.chem-script {
+  font-size: 30px;
+  line-height: 1;
+}

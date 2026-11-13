@@ -354,3 +354,5 @@ All 24 proposed fixes were applied, with one deliberate exception (see the table
   - every tab also has a "↩ לשורה" key;
   - the chemistry keys say "X₂ למטה" and "X⁺ למעלה", and element symbols are upright.
 - **Study screen:** card and buttons are centred again. Only when a card is too long for the screen do the buttons stay pinned to the bottom.
+- **Same keyboard size on every tab:** all four tabs (including a custom letters tab replacing MathLive's) are 4 rows × 10 equal keys, so the keyboard and key size never change when switching.
+- **Chemistry without switching:** the כימיה tab has the elements *and* digits. Digits there go straight to the lower position while the caret stays on the line, and ⁺ / ⁻ go up. CH₂COOH⁺ is typed in one tab with no level changes; two digits in a row merge (C₁₂). Normal-height digits (coefficients like 2H₂O) are in 123.
