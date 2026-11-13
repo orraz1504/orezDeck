@@ -1571,8 +1571,8 @@ math-field.math-editor__field {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.12);
 }
 
-/* "למטה" (shift for chemistry digits): filled while active */
-.ML__keyboard .chem-lower {
+/* Toggle keys ("למטה", ⇧): filled while on */
+.ML__keyboard .toggle-key {
   font-family: var(--font-sans);
   font-size: 15px;
   font-weight: 600;
@@ -1586,8 +1586,7 @@ math-field.math-editor__field {
   color: var(--accent);
 }
 
-.ML__keyboard.is-caps-lock .chem-lower,
-.ML__keyboard .chem-lower.is-active {
+.ML__keyboard .toggle-key.is-on {
   /* !important: MathLive's own keycap rules are more specific */
   background: var(--accent) !important;
   color: var(--on-accent) !important;

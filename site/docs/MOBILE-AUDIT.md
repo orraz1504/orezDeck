@@ -359,5 +359,5 @@ All 24 proposed fixes were applied, with one deliberate exception (see the table
 - **Keyboard redesign:**
   - the app's own colours, one type size, and every row exactly ten equal keys;
   - the tabs are a plain segmented control;
-  - chemistry digits are **normal by default** (so 2H₂O works), and a **"למטה"** key (Shift) lowers the next digit (double-tap locks it, for C₁₂);
-  - while it's on, the digits show lowered in colour, and no other key changes meaning.
+  - chemistry digits are **normal by default** (so 2H₂O works), and a **"למטה"** toggle key lowers digits (tap on, tap off);
+  - while it's on, the key is blue and the digits show lowered in colour. ⇧ in the letters tab is a toggle too.

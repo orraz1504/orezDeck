@@ -26,35 +26,22 @@ const small = (label: string, insert: string, width: VirtualKeyboardKeycap['widt
 /** Element symbols are upright (\mathrm), not math italics. */
 const element = (sym: string): Partial<VirtualKeyboardKeycap> => ({ label: sym, insert: `\\mathrm{${sym}}` })
 
-/**
- * Chemistry digits: normal by default (coefficients, as in 2H₂O). After "למטה"
- * (a shift key: one tap = the next digit only, double tap = locked, for C₁₂)
- * they go to the lower position while the caret stays on the line.
+/*
+ * Toggle keys ("למטה" in chemistry, ⇧ in letters) switch between two layers of the
+ * same tab: tap = on and it stays on, tap again = off. (MathLive's own Shift releases
+ * after one key, which is not what we want here.)
  */
-const chemDigit = (d: number): Partial<VirtualKeyboardKeycap> => ({
-  label: String(d),
-  insert: String(d),
-  shift: { label: `<span class="lower-digit">${d}</span>`, insert: `#@_{${d}}` },
+const toggleKey = (label: string, to: string, on: boolean, tooltip: string): Partial<VirtualKeyboardKeycap> => ({
+  label,
+  tooltip,
+  command: ['switchKeyboardLayer', to] as never,
+  class: on ? 'action toggle-key is-on' : 'action toggle-key',
+  width: 1.5,
 })
 
-/*
- * While "למטה" (Shift) is on, MathLive would also switch other keys to their shifted
- * meaning (+ → Σ, ⌫ → delete everything, arrows → select…). On the chemistry tab only
- * the digits change, so every other key repeats itself as its own shift.
- */
-const same = (insert: string, label = insert): Partial<VirtualKeyboardKeycap> => ({ label, insert, shift: { label, insert } })
-const chemNav: Key[] = [
-  { label: '[left]', shift: { label: '<svg class=svg-glyph><use xlink:href=#svg-arrow-left /></svg>', command: 'performWithFeedback(moveToPreviousChar)' } },
-  { label: '[right]', shift: { label: '<svg class=svg-glyph><use xlink:href=#svg-arrow-right /></svg>', command: 'performWithFeedback(moveToNextChar)' } },
-]
-const chemBackspace: Partial<VirtualKeyboardKeycap> = {
-  label: '[backspace]',
-  width: 1.5,
-  shift: { class: 'action', label: '<svg class=svg-glyph><use xlink:href=#svg-delete-backward /></svg>', command: 'performWithFeedback(deleteBackward)' },
-}
-
-/** "Lower" modifier for the chemistry digits (MathLive treats any keycap with class "shift" as Shift). */
-const LOWER_KEY: Partial<VirtualKeyboardKeycap> = { label: 'למטה', class: 'shift chem-lower', width: 1.5, tooltip: 'הספרה הבאה תיכתב למטה (לחיצה כפולה: נעילה)' }
+/** Chemistry digits: normal on the base layer (coefficients, as in 2H₂O), lowered on the "למטה" layer. */
+const chemDigit = (d: number, lower: boolean): Partial<VirtualKeyboardKeycap> =>
+  lower ? { label: `<span class="lower-digit">${d}</span>`, insert: `#@_{${d}}` } : { label: String(d), insert: String(d) }
 
 const numbers: VirtualKeyboardLayout = {
   label: '123',
@@ -67,17 +54,26 @@ const numbers: VirtualKeyboardLayout = {
   ],
 }
 
-const letterRow = (keys: string) => keys.split('').map((c) => ({ latex: c, shift: { latex: c.toUpperCase() } }))
+const letterRows = (upper: boolean): Key[][] => {
+  const row = (keys: string) => keys.split('').map((c) => ({ latex: upper ? c.toUpperCase() : c }))
+  return [
+    row('qwertyuiop'),
+    ['[separator-5]', ...row('asdfghjkl'), '[separator-5]'],
+    [
+      toggleKey('⇧', upper ? 'letters-lower' : 'letters-upper', upper, upper ? 'אותיות גדולות (לחיצה מבטלת)' : 'אותיות גדולות'),
+      ...row('zxcvbnm'),
+      { label: '[backspace]', width: 1.5 },
+    ],
+    [...nav, '[(]', '[)]', '[=]', '[+]', '[-]', '[.]', EXIT_KEY],
+  ]
+}
 
 const letters: VirtualKeyboardLayout = {
   label: 'abc',
   tooltip: 'אותיות',
-  displayShiftedKeycaps: false,
-  rows: [
-    letterRow('qwertyuiop'),
-    ['[separator-5]', ...letterRow('asdfghjkl'), '[separator-5]'],
-    [{ label: '[shift]', width: 1.5 } as Key, ...letterRow('zxcvbnm'), { label: '[backspace]', width: 1.5 } as Key],
-    [...nav, '[(]', '[)]', '[=]', '[+]', '[-]', '[.]', EXIT_KEY],
+  layers: [
+    { id: 'letters-lower', rows: letterRows(false) },
+    { id: 'letters-upper', rows: letterRows(true) },
   ],
 }
 
@@ -92,15 +88,29 @@ const math: VirtualKeyboardLayout = {
   ],
 }
 
+const chemRows = (lower: boolean): Key[][] => [
+  [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map((d) => chemDigit(d, lower)),
+  ['C', 'H', 'O', 'N', 'S', 'P', 'Cl', 'Na', 'K', 'Ca'].map(element),
+  [
+    toggleKey('למטה', lower ? 'chem' : 'chem-lower', lower, lower ? 'הספרות נכתבות למטה (לחיצה מבטלת)' : 'הספרות ייכתבו למטה'),
+    { label: 'X⁺', insert: '#@^{+}' },
+    { label: 'X⁻', insert: '#@^{-}' },
+    '+',
+    '\\rightarrow',
+    '\\rightleftharpoons',
+    '(',
+    ')',
+    { label: '[backspace]', width: 1.5 },
+  ],
+  [...nav, element('Mg'), element('Fe'), small('(aq)', '_{(aq)}'), small('(g)', '_{(g)}'), { latex: '\\left[#0\\right]' }, '=', EXIT_KEY],
+]
+
 const chem: VirtualKeyboardLayout = {
   label: 'כימיה',
   tooltip: 'כימיה',
-  displayShiftedKeycaps: true,
-  rows: [
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(chemDigit),
-    ['C', 'H', 'O', 'N', 'S', 'P', 'Cl', 'Na', 'K', 'Ca'].map(element),
-    [LOWER_KEY, { label: 'X⁺', insert: '#@^{+}' }, { label: 'X⁻', insert: '#@^{-}' }, same('+'), same('\\rightarrow', '→'), same('\\rightleftharpoons', '⇌'), same('('), same(')'), chemBackspace],
-    [...chemNav, element('Mg'), element('Fe'), small('(aq)', '_{(aq)}'), small('(g)', '_{(g)}'), same('\\left[#0\\right]', '[ ]'), same('='), EXIT_KEY],
+  layers: [
+    { id: 'chem', rows: chemRows(false) },
+    { id: 'chem-lower', rows: chemRows(true) },
   ],
 }
 
