@@ -14,6 +14,8 @@ type Key = string | Partial<VirtualKeyboardKeycap>
 const EXIT_KEY: Partial<VirtualKeyboardKeycap> = { label: '↩ לשורה', command: 'moveAfterParent', class: 'action small', width: 2 }
 
 const nav: Key[] = ['[left]', '[right]']
+/** MathLive's backspace is 1.5 wide by default; rows of ten keep every key the same width. */
+const BACKSPACE: Key = { label: '[backspace]', width: 1 }
 const small = (label: string, insert: string, width: VirtualKeyboardKeycap['width'] = 1): Partial<VirtualKeyboardKeycap> => ({
   label,
   insert,
@@ -21,26 +23,44 @@ const small = (label: string, insert: string, width: VirtualKeyboardKeycap['widt
   width,
 })
 
-const SUB_DIGITS = '₀₁₂₃₄₅₆₇₈₉'
+/** Element symbols are upright (\mathrm), not math italics. */
+const element = (sym: string): Partial<VirtualKeyboardKeycap> => ({ label: sym, insert: `\\mathrm{${sym}}` })
 
 /**
- * Chemistry digits go straight to the lower position and the caret stays on the line,
- * so CH₂COOH⁺ is typed without switching tabs or levels. Two in a row merge (C₁₂).
+ * Chemistry digits: normal by default (coefficients, as in 2H₂O). After "למטה"
+ * (a shift key: one tap = the next digit only, double tap = locked, for C₁₂)
+ * they go to the lower position while the caret stays on the line.
  */
-const subDigit = (d: number): Partial<VirtualKeyboardKeycap> => ({
-  // Drawn as a faded "X" with the digit below it, so the key clearly means "lower number".
-  label: `<span class="cs"><span class="cs-base">X</span><span class="cs-low">${d}</span></span>`,
-  tooltip: `${SUB_DIGITS[d]} מספר למטה`,
-  insert: `#@_{${d}}`,
-  class: 'chem-script',
+const chemDigit = (d: number): Partial<VirtualKeyboardKeycap> => ({
+  label: String(d),
+  insert: String(d),
+  shift: { label: `<span class="lower-digit">${d}</span>`, insert: `#@_{${d}}` },
 })
-const element = (sym: string) => small(sym, `\\mathrm{${sym}}`)
+
+/*
+ * While "למטה" (Shift) is on, MathLive would also switch other keys to their shifted
+ * meaning (+ → Σ, ⌫ → delete everything, arrows → select…). On the chemistry tab only
+ * the digits change, so every other key repeats itself as its own shift.
+ */
+const same = (insert: string, label = insert): Partial<VirtualKeyboardKeycap> => ({ label, insert, shift: { label, insert } })
+const chemNav: Key[] = [
+  { label: '[left]', shift: { label: '<svg class=svg-glyph><use xlink:href=#svg-arrow-left /></svg>', command: 'performWithFeedback(moveToPreviousChar)' } },
+  { label: '[right]', shift: { label: '<svg class=svg-glyph><use xlink:href=#svg-arrow-right /></svg>', command: 'performWithFeedback(moveToNextChar)' } },
+]
+const chemBackspace: Partial<VirtualKeyboardKeycap> = {
+  label: '[backspace]',
+  width: 1.5,
+  shift: { class: 'action', label: '<svg class=svg-glyph><use xlink:href=#svg-delete-backward /></svg>', command: 'performWithFeedback(deleteBackward)' },
+}
+
+/** "Lower" modifier for the chemistry digits (MathLive treats any keycap with class "shift" as Shift). */
+const LOWER_KEY: Partial<VirtualKeyboardKeycap> = { label: 'למטה', class: 'shift chem-lower', width: 1.5, tooltip: 'הספרה הבאה תיכתב למטה (לחיצה כפולה: נעילה)' }
 
 const numbers: VirtualKeyboardLayout = {
   label: '123',
   tooltip: 'מספרים',
   rows: [
-    ['[7]', '[8]', '[9]', '[/]', '[(]', '[)]', { latex: '\\frac{#@}{#?}' }, { latex: '#@^{#?}' }, { latex: '\\sqrt{#0}' }, '[backspace]'],
+    ['[7]', '[8]', '[9]', '[/]', '[(]', '[)]', { latex: '\\frac{#@}{#?}' }, { latex: '#@^{#?}' }, { latex: '\\sqrt{#0}' }, BACKSPACE],
     ['[4]', '[5]', '[6]', '[*]', '<', '>', '\\le', '\\ge', { latex: '#@^{2}' }, '\\pm'],
     ['[1]', '[2]', '[3]', '[-]', '[=]', '\\neq', '\\approx', '\\cdot', { latex: '#@_{#?}' }, '\\%'],
     [...nav, '[0]', '[.]', '[+]', ',', 'x', 'n', EXIT_KEY],
@@ -62,10 +82,10 @@ const letters: VirtualKeyboardLayout = {
 }
 
 const math: VirtualKeyboardLayout = {
-  label: '√ מתמטיקה',
+  label: 'מתמטיקה',
   tooltip: 'מבנים, סימנים ואותיות יווניות',
   rows: [
-    [{ latex: '\\frac{#@}{#?}' }, { latex: '\\sqrt{#0}' }, { latex: '#@^{#?}' }, { latex: '#@_{#?}' }, { latex: '\\bar{#@}' }, { latex: '\\left(#0\\right)' }, { latex: '\\left|#0\\right|' }, { latex: '\\sum_{#?}^{#?}' }, { latex: '\\int_{#?}^{#?}' }, '[backspace]'],
+    [{ latex: '\\frac{#@}{#?}' }, { latex: '\\sqrt{#0}' }, { latex: '#@^{#?}' }, { latex: '#@_{#?}' }, { latex: '\\bar{#@}' }, { latex: '\\left(#0\\right)' }, { latex: '\\left|#0\\right|' }, { latex: '\\sum_{#?}^{#?}' }, { latex: '\\int_{#?}^{#?}' }, BACKSPACE],
     ['\\alpha', '\\beta', '\\gamma', '\\mu', '\\sigma', '\\lambda', '\\Delta', '\\pi', '\\theta', '\\chi'],
     ['\\pm', '\\cdot', '\\times', '\\neq', '\\approx', '\\le', '\\ge', '\\infty', '\\rightarrow', '\\Rightarrow'],
     [...nav, '\\log', '\\ln', { latex: 'e^{#?}' }, '[=]', '[+]', '[-]', EXIT_KEY],
@@ -73,24 +93,14 @@ const math: VirtualKeyboardLayout = {
 }
 
 const chem: VirtualKeyboardLayout = {
-  label: 'H₂O כימיה',
-  tooltip: 'כימיה: הספרות נכתבות למטה אוטומטית',
+  label: 'כימיה',
+  tooltip: 'כימיה',
+  displayShiftedKeycaps: true,
   rows: [
-    [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(subDigit),
+    [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(chemDigit),
     ['C', 'H', 'O', 'N', 'S', 'P', 'Cl', 'Na', 'K', 'Ca'].map(element),
-    [
-      { label: '<span class="cs"><span class="cs-base">X</span><span class="cs-high">+</span></span>', insert: '#@^{+}', class: 'chem-script' },
-      { label: '<span class="cs"><span class="cs-base">X</span><span class="cs-high">−</span></span>', insert: '#@^{-}', class: 'chem-script' },
-      { label: 'מטען', insert: '#@^{#?}', class: 'small' },
-      '[+]',
-      '\\rightarrow',
-      '\\rightleftharpoons',
-      { latex: '\\left[#0\\right]' },
-      '[(]',
-      '[)]',
-      '[backspace]',
-    ],
-    [...nav, element('Mg'), element('Fe'), small('(aq)', '_{(aq)}'), small('(g)', '_{(g)}'), '\\Delta', '[=]', EXIT_KEY],
+    [LOWER_KEY, { label: 'X⁺', insert: '#@^{+}' }, { label: 'X⁻', insert: '#@^{-}' }, same('+'), same('\\rightarrow', '→'), same('\\rightleftharpoons', '⇌'), same('('), same(')'), chemBackspace],
+    [...chemNav, element('Mg'), element('Fe'), small('(aq)', '_{(aq)}'), small('(g)', '_{(g)}'), same('\\left[#0\\right]', '[ ]'), same('='), EXIT_KEY],
   ],
 }
 
