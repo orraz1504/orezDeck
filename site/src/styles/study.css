@@ -1499,8 +1499,58 @@ math-field.math-editor__field {
   white-space: nowrap;
 }
 
-/* Chemistry keys ₂ ⁺ ⁻: the glyphs are tiny by nature, so draw them large */
+/* Chemistry keys: a faded X with the digit drawn below it (or the charge above it) */
 .ML__keyboard .MLK__keycap.chem-script {
-  font-size: 30px;
+  font-size: 18px;
   line-height: 1;
+}
+
+.ML__keyboard .cs {
+  display: inline-flex;
+  align-items: baseline;
+  white-space: nowrap;
+  padding-bottom: 0.3em;
+}
+
+.ML__keyboard .cs-base {
+  font-family: var(--font-math);
+  opacity: 0.35;
+}
+
+.ML__keyboard .cs-low,
+.ML__keyboard .cs-high {
+  position: relative;
+  font-weight: 700;
+  font-size: 0.85em;
+  margin-inline-start: 1px;
+}
+
+.ML__keyboard .cs-low {
+  top: 0.45em;
+}
+
+.ML__keyboard .cs-high {
+  top: -0.5em;
+}
+
+/* Tab bar: separate pills, the selected one filled, so the tabs never read as one phrase */
+.ML__keyboard .MLK__toolbar .left {
+  gap: 6px;
+  padding: 4px 6px;
+}
+
+.ML__keyboard .MLK__toolbar .left > div {
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+  background: color-mix(in srgb, currentColor 7%, transparent);
+  font-size: 15px;
+  white-space: nowrap;
+}
+
+.ML__keyboard .MLK__toolbar .left > div.selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--on-accent);
+  font-weight: 600;
 }

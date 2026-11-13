@@ -27,7 +27,13 @@ const SUB_DIGITS = '₀₁₂₃₄₅₆₇₈₉'
  * Chemistry digits go straight to the lower position and the caret stays on the line,
  * so CH₂COOH⁺ is typed without switching tabs or levels. Two in a row merge (C₁₂).
  */
-const subDigit = (d: number): Partial<VirtualKeyboardKeycap> => ({ label: SUB_DIGITS[d], insert: `#@_{${d}}`, class: 'chem-script' })
+const subDigit = (d: number): Partial<VirtualKeyboardKeycap> => ({
+  // Drawn as a faded "X" with the digit below it, so the key clearly means "lower number".
+  label: `<span class="cs"><span class="cs-base">X</span><span class="cs-low">${d}</span></span>`,
+  tooltip: `${SUB_DIGITS[d]} מספר למטה`,
+  insert: `#@_{${d}}`,
+  class: 'chem-script',
+})
 const element = (sym: string) => small(sym, `\\mathrm{${sym}}`)
 
 const numbers: VirtualKeyboardLayout = {
@@ -56,7 +62,7 @@ const letters: VirtualKeyboardLayout = {
 }
 
 const math: VirtualKeyboardLayout = {
-  label: 'מתמטיקה',
+  label: '√ מתמטיקה',
   tooltip: 'מבנים, סימנים ואותיות יווניות',
   rows: [
     [{ latex: '\\frac{#@}{#?}' }, { latex: '\\sqrt{#0}' }, { latex: '#@^{#?}' }, { latex: '#@_{#?}' }, { latex: '\\bar{#@}' }, { latex: '\\left(#0\\right)' }, { latex: '\\left|#0\\right|' }, { latex: '\\sum_{#?}^{#?}' }, { latex: '\\int_{#?}^{#?}' }, '[backspace]'],
@@ -67,14 +73,14 @@ const math: VirtualKeyboardLayout = {
 }
 
 const chem: VirtualKeyboardLayout = {
-  label: 'כימיה',
+  label: 'H₂O כימיה',
   tooltip: 'כימיה: הספרות נכתבות למטה אוטומטית',
   rows: [
     [1, 2, 3, 4, 5, 6, 7, 8, 9, 0].map(subDigit),
     ['C', 'H', 'O', 'N', 'S', 'P', 'Cl', 'Na', 'K', 'Ca'].map(element),
     [
-      { label: '⁺', insert: '#@^{+}', class: 'chem-script' },
-      { label: '⁻', insert: '#@^{-}', class: 'chem-script' },
+      { label: '<span class="cs"><span class="cs-base">X</span><span class="cs-high">+</span></span>', insert: '#@^{+}', class: 'chem-script' },
+      { label: '<span class="cs"><span class="cs-base">X</span><span class="cs-high">−</span></span>', insert: '#@^{-}', class: 'chem-script' },
       { label: 'מטען', insert: '#@^{#?}', class: 'small' },
       '[+]',
       '\\rightarrow',
