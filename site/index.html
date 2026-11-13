@@ -2,21 +2,22 @@
 <html lang="he" dir="rtl">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" type="image/png" href="./app-icon.png" />
-    <link rel="apple-touch-icon" href="./app-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <!-- Home-screen app: opens full screen, without the browser UI -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="כרטיסיות" />
     <!-- Cross-origin requests send only the origin. Not "no-referrer": the API key's
          HTTP-referrer restriction needs the origin to recognise this site. -->
     <meta name="referrer" content="strict-origin-when-cross-origin" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <!-- interactive-widget: on Android the on-screen keyboard shrinks the layout, so bottom bars stay above it -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, interactive-widget=resizes-content" />
     <meta name="theme-color" content="#F6F6F3" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#131517" media="(prefers-color-scheme: dark)" />
     <title>כרטיסיות אורז</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Hebrew:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=STIX+Two+Text:ital,wght@0,400;0,500;1,400&display=swap"
-      rel="stylesheet"
-    />
   </head>
   <body>
     <div id="root"></div>

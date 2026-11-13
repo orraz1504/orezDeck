@@ -10,7 +10,9 @@ body {
   padding: 0;
 }
 
+/* Text sizes are in rem, so they follow the browser / system text-size setting. */
 html {
+  font-size: 100%;
   -webkit-text-size-adjust: 100%;
   -webkit-tap-highlight-color: transparent;
 }
@@ -27,6 +29,21 @@ body {
 
 #root {
   min-height: 100dvh;
+  /* Landscape iPhone: keep content clear of the notch / Dynamic Island (viewport-fit=cover). */
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* No double-tap zoom on controls, so tapping quickly (e.g. rating cards) never zooms. */
+button,
+a,
+input,
+select,
+textarea,
+label,
+[role='button'],
+.flip-stage {
+  touch-action: manipulation;
 }
 
 a {
@@ -111,3 +128,13 @@ bdi {
 .spacer {
   flex: 1;
 }
+
+/* iPhone / iPad: follow the system text size (Settings → Display & Brightness → Text Size).
+   -webkit-touch-callout exists only on iOS, so desktop Safari is unaffected.
+   At the default system size this is 17px, slightly larger than the 16px base elsewhere. */
+@supports (-webkit-touch-callout: none) {
+  html {
+    font: -apple-system-body;
+  }
+}
+

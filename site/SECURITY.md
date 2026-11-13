@@ -63,6 +63,7 @@ Sorted by severity. "Status" is the state after the fixes in this commit.
 6. **`src/lib/image.ts`, `OcclusionEditorPage.tsx`:** allowed formats, file size, megapixel and height caps, with tests.
 7. **`vite.config.ts`, `index.html`:** the CSP `<meta>`, added to production builds only, and `Referrer-Policy: strict-origin-when-cross-origin`.
    - Not `no-referrer`, because the API key's website restriction needs the origin.
+   - _Update (mobile fixes, Nov 2026):_ fonts are now self-hosted, so `fonts.googleapis.com` / `fonts.gstatic.com` were removed from the CSP. A service worker (`sw.js`, same origin) caches only the app's own files and never touches Firebase or Google requests.
    - The CSP allows scripts only from `self` and `apis.google.com`, frames from `orezdeck.firebaseapp.com` / `accounts.google.com`, and connections to `*.googleapis.com`. It sets `object-src 'none'`, `base-uri 'self'` and `form-action 'none'`, with no `unsafe-eval` and no inline scripts.
    - `'unsafe-inline'` is allowed for *styles* only, because React style attributes and MathLive need it.
 8. **`src/data/store.ts`, `lib/imageCache.ts`:** secure sign-out: wait for pending writes (and ask if offline), then `terminate` + `clearIndexedDbPersistence`, delete the image cache, and reload.

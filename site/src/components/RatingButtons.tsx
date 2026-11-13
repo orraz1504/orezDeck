@@ -23,6 +23,16 @@ const SUB_PROBLEM: Record<Rating, string> = {
   easy: '+2',
 }
 
+/** Keeps "+1" and "~4" in order inside RTL text (otherwise they render as "1+" and "4~"). */
+function sub(text: string) {
+  return text.split(' ').map((w, i) => (
+    <span key={i}>
+      {i > 0 && ' '}
+      {/[\u0590-\u05FF]/.test(w) ? w : <bdi dir="ltr">{w}</bdi>}
+    </span>
+  ))
+}
+
 export function RatingButtons({ onRate, problem }: { onRate: (r: Rating) => void; problem?: boolean }) {
   const subs = problem ? SUB_PROBLEM : SUB_DEFAULT
   return (
@@ -30,7 +40,7 @@ export function RatingButtons({ onRate, problem }: { onRate: (r: Rating) => void
       {RATINGS.map(({ r, label }) => (
         <button key={r} type="button" className={`rating__btn rating__btn--${r}`} onClick={() => onRate(r)}>
           <span className="rating__label">{label}</span>
-          <span className="rating__sub">{subs[r]}</span>
+          <span className="rating__sub">{sub(subs[r])}</span>
         </button>
       ))}
     </div>

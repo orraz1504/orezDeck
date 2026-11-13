@@ -6,6 +6,7 @@ import { RichField } from '../components/RichField'
 import { Button, Field, IconButton, Spinner, Segmented, TagInput, useToast } from '../components/ui'
 import { addCards, applyNotePlan, deleteCards, newId, updateCard, useCards, useDeck, useDecks } from '../data/store'
 import { clozeIndices, wrapCloze } from '../lib/cloze'
+import { goBack } from '../lib/nav'
 import { planClozeNote } from '../lib/notes'
 import { CARD_TYPE_LABEL, type Card, type CardType, type ProblemVariant } from '../lib/types'
 
@@ -80,6 +81,7 @@ function CardEditor() {
         setText('')
         setVariants([emptyVariant()])
         showToast('הכרטיס נשמר')
+        window.scrollTo({ top: 0 })
       } else {
         navigate(`/deck/${dest}`)
       }
@@ -240,12 +242,12 @@ function CardEditor() {
           <div className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
             <div style={{ flex: 1 }}>
               <Field label="כותרת (לרשימה)">
-                <input className="input" dir="auto" value={front} onChange={(e) => setFront(e.target.value)} placeholder="מבחן z לממוצע" />
+                <input className="input" dir="auto" enterKeyHint="next" value={front} onChange={(e) => setFront(e.target.value)} placeholder="מבחן z לממוצע" />
               </Field>
             </div>
             <div style={{ flex: 1 }}>
               <Field label="קבוצה">
-                <input className="input" dir="auto" value={group} onChange={(e) => setGroup(e.target.value)} placeholder="z-test" />
+                <input className="input" dir="auto" enterKeyHint="next" autoCapitalize="off" value={group} onChange={(e) => setGroup(e.target.value)} placeholder="z-test" />
               </Field>
             </div>
           </div>
@@ -275,7 +277,7 @@ function CardEditor() {
                         <span className="step__n" style={{ padding: 0 }}>
                           {si + 1}
                         </span>
-                        <input className="input" style={{ minHeight: 38 }} dir="auto" value={s.title} onChange={(e) => setS({ title: e.target.value })} placeholder="כותרת השלב (השערות, הצבה…)" />
+                        <input className="input" dir="auto" enterKeyHint="next" value={s.title} onChange={(e) => setS({ title: e.target.value })} placeholder="כותרת השלב (השערות, הצבה…)" />
                         {v.steps.length > 1 && <IconButton icon="close" label="הסרת שלב" onClick={() => setV({ steps: v.steps.filter((_, i) => i !== si) })} />}
                       </div>
                       <RichField value={s.body} onChange={(body) => setS({ body })} rows={2} placeholder="$$z = \frac{\bar{x} - \mu_0}{\sigma/\sqrt{n}}$$" />
@@ -313,6 +315,18 @@ function CardEditor() {
       {/* Mobile preview below the form */}
       <div className="editor-preview-pane mobile-only">{preview}</div>
 
+      {/* Mobile: save buttons at the end of the form too (the top bar has only "שמירה") */}
+      <div className="row mobile-only" style={{ gap: 8 }}>
+        {isNew && (
+          <Button size="lg" className="spacer" disabled={!valid || busy} onClick={() => save(true)}>
+            שמירה והוספת עוד
+          </Button>
+        )}
+        <Button variant="primary" size="lg" className="spacer" disabled={!valid || busy} onClick={() => save(false)}>
+          שמירה
+        </Button>
+      </div>
+
       {existing && (
         <Button variant="ghost" icon="trash" onClick={remove} style={{ color: 'var(--again)', alignSelf: 'flex-start' }}>
           מחיקת הכרטיס
@@ -327,7 +341,7 @@ function CardEditor() {
     <div className="stack" style={{ minHeight: '100dvh' }}>
       {/* Mobile header */}
       <div className="topbar mobile-only">
-        <IconButton icon="close" label="ביטול" onClick={() => navigate(-1)} />
+        <IconButton icon="close" label="ביטול" onClick={() => goBack(navigate, `/deck/${deckId}`)} />
         <div className="topbar__title">{title}</div>
         <button type="button" className="topbar__action" disabled={!valid || busy} onClick={() => save(false)} style={!valid ? { color: 'var(--ink3)' } : undefined}>
           שמירה
@@ -337,7 +351,7 @@ function CardEditor() {
       {/* Desktop header */}
       <div className="editor-head desktop-only">
         <div className="row" style={{ gap: 12 }}>
-          <button type="button" className="icon-btn" aria-label="חזרה" onClick={() => navigate(-1)}>
+          <button type="button" className="icon-btn" aria-label="חזרה" onClick={() => goBack(navigate, `/deck/${deckId}`)}>
             <Icon name="back" size={20} />
           </button>
           <span style={{ fontSize: 17, fontWeight: 600 }}>{title}</span>

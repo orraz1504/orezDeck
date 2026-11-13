@@ -1,5 +1,5 @@
-import { useSyncExternalStore } from 'react'
-import { dismissSyncError, useSyncError } from '../data/store'
+import { useEffect, useState, useSyncExternalStore } from 'react'
+import { dismissSyncError, usePendingWrites, useSyncError } from '../data/store'
 
 const MESSAGES: Record<string, string> = {
   'resource-exhausted': 'המכסה היומית של Firestore נגמרה. שינויים חדשים לא יישמרו עד 10:00 מחר בבוקר.',
@@ -17,10 +17,28 @@ function subscribeOnline(cb: () => void) {
   }
 }
 
-/** Top banner: failed saves (quota, rules) and offline state. */
+/** True once `active` has stayed true for `ms` (so quick saves never flash a message). */
+function useLasting(active: boolean, ms: number) {
+  const [lasting, setLasting] = useState(false)
+  useEffect(() => {
+    if (!active) return
+    const t = setTimeout(() => setLasting(true), ms)
+    return () => {
+      clearTimeout(t)
+      setLasting(false)
+    }
+  }, [active, ms])
+  return active && lasting
+}
+
+const changes = (n: number) => (n === 1 ? 'שינוי אחד' : `${n} שינויים`)
+
+/** Top banner: failed saves (quota, rules), offline state, and saves still waiting for the server. */
 export function SyncBanner() {
   const error = useSyncError()
   const online = useSyncExternalStore(subscribeOnline, () => navigator.onLine)
+  const pending = usePendingWrites()
+  const slow = useLasting(online && pending > 0, 4000)
 
   if (error) {
     return (
@@ -35,7 +53,17 @@ export function SyncBanner() {
   if (!online) {
     return (
       <div className="sync-banner" role="status">
-        <span>אין חיבור. אפשר להמשיך ללמוד, והשינויים יישמרו כשהחיבור יחזור.</span>
+        <span>
+          אין חיבור. אפשר להמשיך ללמוד
+          {pending > 0 ? <>; {changes(pending)} ממתינים ויישמרו כשהחיבור יחזור.</> : ', והשינויים יישמרו כשהחיבור יחזור.'}
+        </span>
+      </div>
+    )
+  }
+  if (slow) {
+    return (
+      <div className="sync-banner sync-banner--pending" role="status">
+        <span>{changes(pending)} ממתינים לסנכרון…</span>
       </div>
     )
   }

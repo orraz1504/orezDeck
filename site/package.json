@@ -12,6 +12,10 @@
     "test:rules": "npx -y firebase-tools@15.34.1 emulators:exec --only firestore --project demo-orezdeck \"vitest run --config vitest.rules.config.ts\""
   },
   "dependencies": {
+    "@fontsource/ibm-plex-mono": "5.3.0",
+    "@fontsource/ibm-plex-sans": "5.3.0",
+    "@fontsource/ibm-plex-sans-hebrew": "5.3.0",
+    "@fontsource/stix-two-text": "5.3.0",
     "firebase": "^13.2.0",
     "katex": "^0.19.1",
     "mathlive": "0.111.1",

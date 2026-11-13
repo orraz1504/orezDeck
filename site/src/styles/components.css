@@ -8,7 +8,7 @@
   height: var(--h-md);
   padding: 0 18px;
   border-radius: var(--r-md);
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 500;
   white-space: nowrap;
   text-decoration: none;
@@ -83,14 +83,14 @@
 .btn--lg {
   height: var(--h-lg);
   border-radius: var(--r-lg);
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 .btn--sm {
   height: var(--h-sm);
   padding: 0 12px;
   border-radius: var(--r-sm);
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .btn--block {
@@ -117,7 +117,7 @@
   background: var(--surface);
   border: 1px solid var(--line2);
   box-shadow: var(--shadow);
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 500;
   gap: 12px;
 }
@@ -129,7 +129,7 @@
   border: 1.5px solid var(--ink2);
   display: grid;
   place-items: center;
-  font: 600 13px var(--font-latin);
+  font: 600 0.8125rem var(--font-latin);
   color: var(--ink2);
 }
 
@@ -149,7 +149,7 @@
   height: 38px;
   display: grid;
   place-items: center;
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 500;
   color: var(--ink2);
   border-radius: 9px;
@@ -166,12 +166,12 @@
 
 .segmented--lg .segmented__opt {
   height: 42px;
-  font-size: 16px;
+  font-size: 1rem;
 }
 
 .segmented--sm .segmented__opt {
   height: 32px;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 /* ───────────────────────── Tabs ───────────────────────── */
@@ -184,7 +184,7 @@
 
 .tabs__tab {
   padding: 12px 0;
-  font-size: 15px;
+  font-size: 0.9375rem;
   color: var(--ink2);
   border-bottom: 2px solid transparent;
   margin-bottom: -1px;
@@ -215,7 +215,7 @@
 }
 
 .chip {
-  font-size: 13px;
+  font-size: 0.8125rem;
   padding: 6px 12px;
   border-radius: var(--r-pill);
   background: var(--surface2);
@@ -233,7 +233,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   padding: 5px 11px;
   border-radius: var(--r-pill);
   background: var(--surface2);
@@ -242,7 +242,7 @@
 }
 
 .tag--sm {
-  font-size: 12px;
+  font-size: 0.75rem;
   padding: 3px 9px;
 }
 
@@ -259,12 +259,12 @@
 
 .tag__x {
   color: var(--ink3);
-  font-size: 14px;
+  font-size: 0.875rem;
   line-height: 1;
 }
 
 .badge {
-  font-size: 12px;
+  font-size: 0.75rem;
   padding: 3px 8px;
   border-radius: var(--r-xs);
   background: var(--surface2);
@@ -288,7 +288,7 @@
 }
 
 .kbd {
-  font: 500 11px var(--font-mono);
+  font: 500 0.75rem var(--font-mono);
   border: 1px solid var(--line2);
   border-radius: 4px;
   padding: 1px 5px;
@@ -322,7 +322,7 @@
 .legend {
   display: flex;
   gap: 16px;
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--ink2);
   flex-wrap: wrap;
 }
@@ -378,7 +378,7 @@
 }
 
 .histogram__n {
-  font: 500 11.5px var(--font-mono);
+  font: 500 0.7812rem var(--font-mono);
   color: var(--ink2);
 }
 
@@ -393,7 +393,7 @@
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 8px;
   text-align: center;
-  font: 500 12px var(--font-mono);
+  font: 500 0.75rem var(--font-mono);
   color: var(--ink3);
 }
 
@@ -408,7 +408,7 @@
   grid-template-columns: 52px minmax(0, 1fr) 36px;
   gap: 10px;
   align-items: center;
-  font-size: 13px;
+  font-size: 0.8125rem;
 }
 
 .mastery-row__track {
@@ -440,7 +440,7 @@
 }
 
 .panel__title {
-  font-size: 16px;
+  font-size: 1rem;
   font-weight: 600;
 }
 
@@ -485,12 +485,12 @@
 }
 
 .mode-card__title {
-  font-size: 17px;
+  font-size: 1.0625rem;
   font-weight: 600;
 }
 
 .mode-card__desc {
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   color: var(--ink2);
 }
 
@@ -503,12 +503,12 @@
 }
 
 .field__label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--ink2);
 }
 
 .field__hint {
-  font-size: 12.5px;
+  font-size: 0.7812rem;
   color: var(--ink3);
 }
 
@@ -528,7 +528,7 @@
   border: 1px solid var(--line2);
   background: var(--surface);
   padding: 0 12px;
-  font-size: 16px;
+  font-size: 1rem;
   outline: none;
 }
 
@@ -539,6 +539,14 @@
   min-height: 70px;
 }
 
+/* Each line picks its own direction: Hebrew lines RTL, LaTeX lines LTR
+   (dir="auto" alone uses the first letter of the whole text for every line). */
+.input,
+.textarea {
+  unicode-bidi: plaintext;
+  text-align: start;
+}
+
 .input:focus,
 .textarea:focus,
 .select:focus {
@@ -546,11 +554,19 @@
 }
 
 .textarea--code {
-  font: 13px/1.65 var(--font-mono);
+  font: 0.8125rem/1.65 var(--font-mono);
   direction: ltr;
+  unicode-bidi: normal;
   text-align: left;
   min-height: 160px;
   color: var(--ink2);
+}
+
+/* Touch screens: iOS zooms into any field under 16px. */
+@media (pointer: coarse) {
+  .textarea--code {
+    font-size: 1rem;
+  }
 }
 
 .select {
@@ -578,7 +594,7 @@
   border: none;
   outline: none;
   background: none;
-  font-size: 15px;
+  font-size: 1rem; /* under 1rem iOS zooms in on focus */
   color: var(--ink);
   min-width: 0;
 }
@@ -591,7 +607,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ink2);
   cursor: pointer;
 }
@@ -603,7 +619,7 @@
   border: 1.5px solid var(--line2);
   display: grid;
   place-items: center;
-  font-size: 12px;
+  font-size: 0.75rem;
   flex: none;
 }
 
@@ -627,7 +643,7 @@
   border: none;
   outline: none;
   background: none;
-  font-size: 14px;
+  font-size: 1rem;
   min-width: 100px;
   flex: 1;
   padding: 4px;
@@ -703,12 +719,12 @@ button.list__row:hover {
 }
 
 .empty__title {
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 600;
 }
 
 .empty__text {
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.7;
   color: var(--ink2);
   max-width: 300px;
@@ -792,7 +808,7 @@ button.list__row:hover {
   display: grid;
   place-items: center;
   font-weight: 600;
-  font-size: 14px;
+  font-size: 0.875rem;
   flex: none;
   overflow: hidden;
   text-decoration: none;
@@ -809,6 +825,9 @@ button.list__row:hover {
 .overlay {
   position: fixed;
   inset: 0;
+  /* Sits above the on-screen keyboard, so a sheet's fields and buttons stay visible. */
+  top: var(--vv-top, 0px);
+  bottom: var(--kb, 0px);
   background: var(--overlay);
   z-index: 50;
   display: flex;
@@ -827,13 +846,13 @@ button.list__row:hover {
   flex-direction: column;
   gap: 16px;
   box-shadow: var(--shadow-pop);
-  max-height: 92dvh;
+  max-height: calc(92dvh - var(--kb, 0px));
   overflow-y: auto;
   animation: rise 0.2s ease;
 }
 
 .sheet__title {
-  font-size: 19px;
+  font-size: 1.1875rem;
   font-weight: 600;
 }
 
@@ -867,7 +886,7 @@ button.list__row:hover {
   padding: 10px 12px;
   border-radius: 8px;
   text-align: start;
-  font-size: 15px;
+  font-size: 0.9375rem;
   color: var(--ink);
   text-decoration: none;
 }
@@ -902,7 +921,7 @@ button.list__row:hover {
   color: var(--bg);
   padding: 10px 16px;
   border-radius: 12px;
-  font-size: 14px;
+  font-size: 0.875rem;
   z-index: 60;
   box-shadow: var(--shadow-pop);
   animation: rise 0.2s ease;
@@ -917,8 +936,8 @@ button.list__row:hover {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 16px;
-  font-size: 13.5px;
+  padding: max(8px, env(safe-area-inset-top)) 16px 8px;
+  font-size: 0.8438rem;
   line-height: 1.5;
   background: var(--surface2);
   color: var(--ink2);
@@ -935,8 +954,80 @@ button.list__row:hover {
 }
 
 .sync-banner button {
-  font-size: 20px;
+  font-size: 1.25rem;
   line-height: 1;
-  padding: 4px 8px;
+  min-width: 44px;
+  min-height: 44px;
+  margin: -10px -12px;
   color: inherit;
+}
+
+/* ───────────────────────── Touch screens: 44px tap targets ───────────────────────── */
+
+@media (pointer: coarse) {
+  .btn--sm,
+  .segmented__opt,
+  .segmented--sm .segmented__opt {
+    height: var(--h-md);
+  }
+
+  .chip {
+    min-height: var(--h-md);
+    display: inline-flex;
+    align-items: center;
+    padding: 0 14px;
+    font-size: 0.875rem;
+  }
+
+  .checkbox,
+  .link-btn {
+    min-height: var(--h-md);
+  }
+
+  /* Small visuals keep their look; an invisible ring enlarges what the finger can hit. */
+  .tag__x,
+  .avatar {
+    position: relative;
+  }
+
+  .tag__x::after {
+    content: '';
+    position: absolute;
+    inset: -14px -10px;
+  }
+
+  .avatar::after {
+    content: '';
+    position: absolute;
+    inset: -4px;
+  }
+}
+
+/* Keyboard open: the sticky bottom bar would sit under the keyboard (Save is in the sticky top bar). */
+.kb-open .bottom-bar {
+  display: none;
+}
+
+/* "New version" chip (service worker update) */
+.update-chip {
+  position: fixed;
+  z-index: 45;
+  left: 50%;
+  bottom: calc(16px + var(--safe-bottom));
+  transform: translateX(-50%);
+  min-height: 44px;
+  padding: 0 18px;
+  border-radius: var(--r-pill);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 0.875rem;
+  box-shadow: var(--shadow-pop);
+  white-space: nowrap;
+}
+
+/* Formula source shown for a moment until KaTeX has loaded */
+.math-pending {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--ink3);
 }

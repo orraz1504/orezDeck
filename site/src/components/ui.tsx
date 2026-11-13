@@ -49,12 +49,14 @@ export function IconButton({
   to,
   onClick,
   className,
+  disabled,
 }: {
   icon: IconName
   label: string
   to?: string
   onClick?: () => void
   className?: string
+  disabled?: boolean
 }) {
   if (to) {
     return (
@@ -64,7 +66,7 @@ export function IconButton({
     )
   }
   return (
-    <button type="button" className={`icon-btn ${className ?? ''}`} aria-label={label} onClick={onClick}>
+    <button type="button" className={`icon-btn ${className ?? ''}`} aria-label={label} onClick={onClick} disabled={disabled}>
       <Icon name={icon} />
     </button>
   )
@@ -297,7 +299,7 @@ export function SearchField({
   return (
     <label className="search">
       <Icon name="search" size={18} />
-      <input type="search" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} dir="auto" />
+      <input type="search" enterKeyHint="search" autoCorrect="off" autoComplete="off" value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} dir="auto" />
     </label>
   )
 }
@@ -349,6 +351,9 @@ export function TagInput({ tags, onChange, suggestions = [] }: { tags: string[];
         value={draft}
         dir="auto"
         list="tag-suggestions"
+        enterKeyHint="done"
+        autoComplete="off"
+        autoCapitalize="none"
         placeholder={tags.length ? '' : 'הוסף תגית…'}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => {

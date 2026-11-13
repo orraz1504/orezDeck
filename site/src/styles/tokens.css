@@ -100,11 +100,11 @@
   --font-mono: 'IBM Plex Mono', 'IBM Plex Sans Hebrew', ui-monospace, monospace;
   --font-math: 'STIX Two Text', 'Times New Roman', serif;
 
-  --fs-screen-title: 28px; /* 28/700 */
-  --fs-subtitle: 19px; /* 19/600 */
-  --fs-card: 22px; /* 22/500 · 1.6 */
-  --fs-body: 16px; /* 16/400 · 1.7 */
-  --fs-label: 13px; /* 13/500 */
+  --fs-screen-title: 1.75rem; /* 28/700 */
+  --fs-subtitle: 1.1875rem; /* 19/600 */
+  --fs-card: 1.375rem; /* 22/500 · 1.6 */
+  --fs-body: 1rem; /* 16/400 · 1.7 */
+  --fs-label: 0.8125rem; /* 13/500 */
 
   /* Radii */
   --r-xs: 6px;

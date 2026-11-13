@@ -2,8 +2,10 @@ import { lazy, Suspense, type ReactNode } from 'react'
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom'
 import { AppShell } from './components/AppShell'
 import { SyncBanner } from './components/SyncBanner'
+import { UpdateChip } from './components/UpdateChip'
 import { Spinner } from './components/ui'
 import { useAuth } from './data/store'
+import { useKeyboardInset } from './lib/useKeyboardInset'
 import { useApplyTheme } from './lib/theme'
 import { DeckPage } from './pages/DeckPage'
 import { DecksPage } from './pages/DecksPage'
@@ -26,9 +28,11 @@ const ImportPage = lazy(() => import('./pages/ImportPage').then((m) => ({ defaul
 
 export default function App() {
   useApplyTheme()
+  useKeyboardInset()
   return (
     <HashRouter>
       <SyncBanner />
+      <UpdateChip />
       <Suspense fallback={<Spinner label="טוען…" />}>
       <Routes>
         <Route path="/login" element={<LoginPage />} />

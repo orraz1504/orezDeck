@@ -321,11 +321,31 @@ async function runBatches<T>(items: T[], op: (b: WriteBatch, item: T) => void) {
  * them to the local cache immediately (listeners update), so callers that
  * navigate away right after saving must not wait for the server.
  */
+/* Writes not yet confirmed by the server (queued offline, or in flight). */
+let pendingWrites = 0
+const pendingListeners = new Set<() => void>()
+const setPending = (n: number) => {
+  pendingWrites = n
+  pendingListeners.forEach((l) => l())
+}
+
+/** Number of saves the server hasn't confirmed yet (shown as "waiting to sync"). */
+export function usePendingWrites(): number {
+  return useSyncExternalStore(
+    (l) => {
+      pendingListeners.add(l)
+      return () => pendingListeners.delete(l)
+    },
+    () => pendingWrites,
+  )
+}
+
 function settle(p: Promise<unknown>) {
+  setPending(pendingWrites + 1)
   p.catch((e) => {
     console.error('write failed', e)
     reportSyncError(e)
-  })
+  }).finally(() => setPending(Math.max(0, pendingWrites - 1)))
 }
 
 /* ───────────────────────── Sync errors (shown in a banner) ───────────────────────── */

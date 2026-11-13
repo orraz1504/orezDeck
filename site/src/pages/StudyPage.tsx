@@ -15,6 +15,8 @@ import {
   type SessionState,
 } from '../lib/scheduler'
 import type { Card, CardProgress, Deck, Rating, SessionSize, StudyMode } from '../lib/types'
+import { useSwipePref } from '../lib/prefs'
+import { useSwipe } from '../lib/useSwipe'
 
 const MODE_LABEL: Record<StudyMode, string> = { continue: 'המשך סבב', weak: 'רק חלשים', all: 'עבור על הכל' }
 const RATING_KEYS: Rating[] = ['again', 'hard', 'good', 'easy']
@@ -156,8 +158,14 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
     [flipping],
   )
 
+  /* Swipe (setting): before the answer, either way reveals it; after: → "טוב", ← "שוב". */
+  const swipeOn = useSwipePref()
+  const swipeRef = useRef<(dir: 'left' | 'right') => void>(() => {})
+  const swipe = useSwipe(swipeOn && !variant, (dir) => swipeRef.current(dir))
+
   /** Tap on the card: flip it over (both directions). Ignores text selection and links. */
   const onCardTap = (e: ReactMouseEvent) => {
+    if (swipe.swiped.current) return
     if ((e.target as HTMLElement).closest('a, button, input, textarea')) return
     if (window.getSelection()?.toString()) return
     turnTo(!revealed)
@@ -170,6 +178,16 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
       if (next >= totalSteps) setRevealed(true)
     } else turnTo(true)
   }, [variant, totalSteps, stepsShown, turnTo])
+
+  // Bring each newly revealed problem step into view (it opens below the fold on phones).
+  const stepsRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!stepsShown) return
+    const steps = stepsRef.current?.querySelectorAll('.step:not(.step--locked)')
+    const last = steps?.[steps.length - 1]
+    const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    last?.scrollIntoView({ block: 'nearest', behavior: smooth ? 'smooth' : 'auto' })
+  }, [stepsShown])
 
   const revealAll = () => {
     setStepsShown(totalSteps)
@@ -199,6 +217,11 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
     },
     [current, plan.round, variantIndex, deckId, session, queue, finish],
   )
+
+  swipeRef.current = (dir) => {
+    if (!revealed) turnTo(true)
+    else rate(dir === 'right' ? 'good' : 'again')
+  }
 
   // Keyboard: Space/Enter reveal, 1–4 rate, Esc exit.
   useEffect(() => {
@@ -260,20 +283,31 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
       <div className={`study__body ${variant ? 'study__body--top' : ''}`}>
       <div className={`study__stage ${wide ? 'study__stage--wide' : ''}`}>
         {variant ? (
-          <div className="problem-grid">
+          <div className="problem-grid" ref={stepsRef}>
             <ProblemPrompt card={current} variant={variant} variantIndex={variantIndex} />
             {stepsShown > 0 && <ProblemSteps variant={variant} shown={stepsShown} />}
           </div>
         ) : (
           <div
-            className="flip-stage flip-stage--tap"
+            className={`flip-stage flip-stage--tap ${swipeOn ? 'flip-stage--swipe' : ''}`}
             role="button"
             tabIndex={-1}
             aria-label={revealed ? 'הפוך חזרה לשאלה' : 'הפוך לתשובה'}
             onClick={onCardTap}
+            {...swipe.handlers}
           >
-            <div key={`${current.id}:${revealed}`} className={flipping ? 'flip-out' : entry === 'flip' ? 'flip-in' : 'card-enter'}>
-              <CardFace card={current} revealed={revealed} />
+            <div
+              className="swipe-layer"
+              style={swipe.dx ? { transform: `translateX(${swipe.dx}px) rotate(${swipe.dx / 40}deg)`, transition: 'none' } : undefined}
+            >
+              <div key={`${current.id}:${revealed}`} className={flipping ? 'flip-out' : entry === 'flip' ? 'flip-in' : 'card-enter'}>
+                <CardFace card={current} revealed={revealed} />
+              </div>
+              {revealed && Math.abs(swipe.dx) > 30 && (
+                <span className={`swipe-badge swipe-badge--${swipe.dx > 0 ? 'good' : 'again'}`} style={{ opacity: Math.min(1, (Math.abs(swipe.dx) - 30) / 60) }}>
+                  {swipe.dx > 0 ? 'טוב' : 'שוב'}
+                </span>
+              )}
             </div>
           </div>
         )}

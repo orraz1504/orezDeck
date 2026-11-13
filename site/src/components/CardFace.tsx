@@ -1,10 +1,11 @@
-import type { CSSProperties } from 'react'
+import { useState, type CSSProperties } from 'react'
 import { useImage } from '../data/store'
 import { answerFit, questionFit } from '../lib/fit'
 import type { Card, ProblemVariant } from '../lib/types'
 import { Icon } from './Icon'
 import { OcclusionImage } from './OcclusionImage'
 import { RichText } from './RichText'
+import { ZoomViewer } from './ZoomViewer'
 
 const MODE_LABEL = { hideOne: 'הסתר אחד', hideAll: 'הסתר הכל, חשוף אחד' } as const
 
@@ -66,23 +67,40 @@ function ImageFace({ card, revealed }: { card: Card; revealed: boolean }) {
   const img = useImage(card.imageId)
   const mode = card.occlusionMode ?? 'hideOne'
   const target = card.masks?.find((m) => m.id === card.maskId)
+  const [zoom, setZoom] = useState(false)
+  const image = (
+    <OcclusionImage
+      src={img.src}
+      width={img.width}
+      height={img.height}
+      masks={card.masks ?? []}
+      targetId={card.maskId}
+      mode={mode}
+      revealStyle={card.revealStyle}
+      revealed={revealed}
+      caption={img.loading ? 'טוען תמונה…' : img.missing ? 'תמונה לדוגמה' : undefined}
+    />
+  )
+  const aspect = img.width && img.height ? img.width / img.height : 1
   return (
     <div className="study-card study-card--tight">
       <div className="study-card__head" style={{ padding: '0 4px' }}>
         <span dir="auto">{card.prompt || 'מה המבנה המסומן?'}</span>
         <span style={{ color: 'var(--hard)' }}>{MODE_LABEL[mode]}</span>
       </div>
-      <OcclusionImage
-        src={img.src}
-        width={img.width}
-        height={img.height}
-        masks={card.masks ?? []}
-        targetId={card.maskId}
-        mode={mode}
-        revealStyle={card.revealStyle}
-        revealed={revealed}
-        caption={img.loading ? 'טוען תמונה…' : img.missing ? 'תמונה לדוגמה' : undefined}
-      />
+      <div className="occ-zoomable">
+        {image}
+        {img.src && (
+          <button type="button" className="occ-zoom-btn" aria-label="הגדלת התמונה" onClick={() => setZoom(true)}>
+            <Icon name="zoom" size={20} />
+          </button>
+        )}
+      </div>
+      {zoom && (
+        <ZoomViewer onClose={() => setZoom(false)}>
+          <div style={{ width: `min(100%, calc((100dvh - 80px) * ${aspect}))` }}>{image}</div>
+        </ZoomViewer>
+      )}
       {revealed && target?.label && (card.revealStyle !== 'image' || !img.src) && (
         <div style={{ fontSize: 16, padding: '0 6px' }} dir="auto">
           <bdi>{target.label}</bdi>

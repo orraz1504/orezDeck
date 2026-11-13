@@ -1,13 +1,15 @@
 import { useRef, useState } from 'react'
-import { Button, Segmented, useToast } from '../components/ui'
+import { Button, Checkbox, Segmented, useToast } from '../components/ui'
 import { exportBackup, restoreBackup } from '../data/backupOps'
 import { seedDemoData } from '../data/demo'
 import { deleteAllData, signOut, useAuth } from '../data/store'
 import { MAX_BACKUP_BYTES } from '../lib/backup'
+import { setSwipePref, useSwipePref } from '../lib/prefs'
 import { setThemePref, useThemePref, type ThemePref } from '../lib/theme'
 
 export function SettingsPage() {
   const pref = useThemePref()
+  const swipe = useSwipePref()
   const { user } = useAuth()
   const [toast, showToast] = useToast()
   const [busy, setBusy] = useState<string | null>(null)
@@ -68,6 +70,16 @@ export function SettingsPage() {
             { value: 'dark', label: 'כהה' },
           ]}
         />
+      </div>
+
+      <div className="panel panel--pad stack" style={{ gap: 12 }}>
+        <div className="panel__title">לימוד</div>
+        <Checkbox checked={swipe} onChange={setSwipePref}>
+          החלקה על הכרטיס (בטלפון)
+        </Checkbox>
+        <div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
+          לפני התשובה: החלקה לכל צד חושפת אותה. אחרי התשובה: החלקה ימינה = טוב, שמאלה = שוב.
+        </div>
       </div>
 
       <div className="panel panel--pad stack" style={{ gap: 12 }}>

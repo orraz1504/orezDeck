@@ -35,6 +35,8 @@ export function DeckFormSheet({ deck, onClose }: { deck?: Deck; onClose: () => v
             className="input"
             dir="auto"
             autoFocus
+            enterKeyHint="next"
+            autoComplete="off"
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="לדוגמה: פיזיולוגיה א'"
@@ -48,7 +50,7 @@ export function DeckFormSheet({ deck, onClose }: { deck?: Deck; onClose: () => v
           </div>
           <div style={{ flex: 1 }}>
             <Field label="מועד (לא חובה)">
-              <input className="input" dir="auto" value={examLabel} onChange={(e) => setExamLabel(e.target.value)} placeholder="מועד א'" />
+              <input className="input" dir="auto" enterKeyHint="done" autoComplete="off" value={examLabel} onChange={(e) => setExamLabel(e.target.value)} placeholder="מועד א'" />
             </Field>
           </div>
         </div>

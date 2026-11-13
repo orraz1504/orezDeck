@@ -1,11 +1,17 @@
 /**
  * Visual formula editor (MathLive). You see the formula as it will look,
  * with empty boxes showing where each number goes, so there's no need to
- * read LaTeX. Tab / arrow keys move between the boxes. On touch devices
- * MathLive opens its own math keyboard.
+ * read LaTeX. Tab / arrow keys move between the boxes.
+ *
+ * Phones: a full-screen editor with Cancel / Insert at the top and our own
+ * math keyboard (123 · statistics · Greek · chemistry · templates) at the
+ * bottom, so the keyboard can never cover the formula or the buttons.
+ * Desktop: a dialog with a symbol palette and the physical keyboard.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { MathfieldElement } from 'mathlive'
+import { MATH_TEMPLATES, PHONE_LAYOUTS } from '../lib/mathKeyboard'
+import { useMedia } from '../lib/useMedia'
 import { Button, Checkbox, Sheet, Spinner } from './ui'
 
 interface Template {
@@ -68,6 +74,10 @@ const GROUPS: { name: string; items: Template[] }[] = [
       { label: '[ ]', title: 'ריכוז', latex: '\\left[#0\\right]' },
     ],
   },
+  {
+    name: 'תבניות',
+    items: MATH_TEMPLATES.map((t) => ({ label: t.name, title: t.latex, latex: t.latex })),
+  },
 ]
 
 let mathliveReady: Promise<typeof import('mathlive')> | null = null
@@ -76,6 +86,9 @@ function loadMathLive() {
     mathliveReady = import('mathlive').then((m) => {
       m.MathfieldElement.fontsDirectory = `${import.meta.env.BASE_URL}mathlive/fonts`
       m.MathfieldElement.soundsDirectory = null
+      // Phone keyboard: our layouts instead of MathLive's generic ones.
+      window.mathVirtualKeyboard.layouts = PHONE_LAYOUTS
+      window.mathVirtualKeyboard.editToolbar = 'none'
       return m
     })
   }
@@ -98,6 +111,27 @@ export function MathEditor({ initial, display: initialDisplay, editing, onSubmit
   const [showRaw, setShowRaw] = useState(false)
   const [ready, setReady] = useState(false)
   const [group, setGroup] = useState(0)
+  /** Touch screen: MathLive's on-screen keyboard replaces the palette. */
+  const touch = useMedia('(pointer: coarse)')
+  const fullScreen = useMedia('(max-width: 959.98px)')
+  /** Height of the math keyboard, so the content above it can scroll clear of it. */
+  const [kbHeight, setKbHeight] = useState(0)
+
+  useEffect(() => {
+    const kb = window.mathVirtualKeyboard
+    if (!ready || !kb) return
+    const onGeometry = () => setKbHeight(kb.visible ? kb.boundingRect.height : 0)
+    kb.addEventListener('geometrychange', onGeometry)
+    onGeometry()
+    return () => kb.removeEventListener('geometrychange', onGeometry)
+  }, [ready])
+
+  useEffect(() => {
+    if (!fullScreen) return
+    const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [fullScreen, onClose])
 
   useEffect(() => {
     let cancelled = false
@@ -138,9 +172,11 @@ export function MathEditor({ initial, display: initialDisplay, editing, onSubmit
     onClose()
   }
 
-  return (
-    <Sheet title={editing ? 'עריכת נוסחה' : 'נוסחה חדשה'} onClose={onClose}>
-      <div className="math-editor">
+  const title = editing ? 'עריכת נוסחה' : 'נוסחה חדשה'
+  const submitLabel = editing ? 'עדכון' : 'הוספה'
+
+  const palette = !touch && (
+    <>
         <div className="math-editor__tabs" role="tablist">
           {GROUPS.map((g, i) => (
             <button key={g.name} type="button" role="tab" aria-selected={i === group} className="chip" aria-pressed={i === group} onClick={() => setGroup(i)}>
@@ -162,14 +198,28 @@ export function MathEditor({ initial, display: initialDisplay, editing, onSubmit
             </button>
           ))}
         </div>
+    </>
+  )
 
-        <div ref={host} className="math-editor__host">
-          {!ready && <Spinner label="טוען עורך…" />}
-        </div>
-        <div className="faint" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
-          הקלידו ישר בתיבה: <bdi dir="ltr">/</bdi> יוצר שבר, <bdi dir="ltr">^</bdi> חזקה, <bdi dir="ltr">_</bdi> אינדקס. ריבוע ריק = מקום למספר. מעבר
-          בין ריבועים: <bdi dir="ltr">Tab</bdi> או החצים.
-        </div>
+  const field = (
+    <div ref={host} className="math-editor__host">
+      {!ready && <Spinner label="טוען עורך…" />}
+    </div>
+  )
+
+  const hint = touch ? (
+    <div className="faint math-screen__hint" style={{ fontSize: 13, lineHeight: 1.6 }}>
+      ריבוע ריק = מקום למספר. לחצו על ריבוע או השתמשו בחצים כדי לעבור ביניהם. בלשונית <b>תבניות</b> יש נוסחאות מוכנות.
+    </div>
+  ) : (
+    <div className="faint" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
+      הקלידו ישר בתיבה: <bdi dir="ltr">/</bdi> יוצר שבר, <bdi dir="ltr">^</bdi> חזקה, <bdi dir="ltr">_</bdi> אינדקס. ריבוע ריק = מקום למספר. מעבר
+      בין ריבועים: <bdi dir="ltr">Tab</bdi> או החצים.
+    </div>
+  )
+
+  const options = (
+    <>
 
         <div className="row" style={{ gap: 16, flexWrap: 'wrap' }}>
           <Checkbox checked={display} onChange={setDisplay}>
@@ -185,16 +235,51 @@ export function MathEditor({ initial, display: initialDisplay, editing, onSubmit
             style={{ minHeight: 60 }}
             value={latex}
             spellCheck={false}
+            autoCorrect="off"
+            autoCapitalize="off"
+            autoComplete="off"
+            dir="ltr"
             onChange={(e) => {
               setLatex(e.target.value)
               if (mfRef.current) mfRef.current.value = e.target.value
             }}
           />
         )}
+    </>
+  )
 
+  if (fullScreen) {
+    return (
+      <div className="math-screen" role="dialog" aria-modal aria-label={title}>
+        <div className="math-screen__bar">
+          <button type="button" className="topbar__action" style={{ color: 'var(--ink2)' }} onClick={onClose}>
+            ביטול
+          </button>
+          <div className="topbar__title">{title}</div>
+          <button type="button" className="topbar__action" onClick={submit} disabled={!ready}>
+            {submitLabel}
+          </button>
+        </div>
+        <div className="math-screen__body" style={{ paddingBottom: kbHeight + 16 }}>
+          {palette}
+          {field}
+          {hint}
+          {options}
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <Sheet title={title} onClose={onClose}>
+      <div className="math-editor">
+        {palette}
+        {field}
+        {hint}
+        {options}
         <div className="row" style={{ gap: 8 }}>
           <Button variant="primary" size="lg" className="spacer" onClick={submit} disabled={!ready}>
-            {editing ? 'עדכון' : 'הוספה'}
+            {submitLabel}
           </Button>
           <Button variant="ghost" size="lg" onClick={onClose}>
             ביטול

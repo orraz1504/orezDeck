@@ -84,6 +84,22 @@
   scrollbar-width: thin;
 }
 
+/* Wide formula: a soft shadow appears on the side that has more to scroll.
+   The "local" covers move with the content and hide the shadow at the ends. */
+.math-block {
+  --math-bg: var(--surface);
+  --math-shade: color-mix(in srgb, var(--ink) 22%, transparent);
+  background:
+    linear-gradient(to right, var(--math-bg) 40%, transparent) left / 28px 100% no-repeat local,
+    linear-gradient(to left, var(--math-bg) 40%, transparent) right / 28px 100% no-repeat local,
+    radial-gradient(farthest-side at 0 50%, var(--math-shade), transparent) left / 12px 100% no-repeat scroll,
+    radial-gradient(farthest-side at 100% 50%, var(--math-shade), transparent) right / 12px 100% no-repeat scroll;
+}
+
+.formula-preview .math-block {
+  --math-bg: var(--surface2);
+}
+
 .math .katex {
   font-size: 1.08em;
 }
@@ -130,7 +146,7 @@
 }
 
 .study__deck {
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ink3);
   text-align: center;
   flex: 1;
@@ -139,7 +155,7 @@
 
 .study__left {
   padding: 0 10px;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ink2);
   white-space: nowrap;
 }
@@ -187,7 +203,7 @@
     width: auto;
     gap: 6px;
     padding: 0 8px;
-    font-size: 14px;
+    font-size: 0.875rem;
     display: flex;
   }
 
@@ -212,7 +228,7 @@
     display: flex;
     justify-content: center;
     gap: 18px;
-    font-size: 12.5px;
+    font-size: 0.7812rem;
     color: var(--ink3);
     padding-bottom: 28px;
     flex-wrap: wrap;
@@ -245,24 +261,24 @@
   justify-content: space-between;
   align-items: center;
   gap: 8px;
-  font-size: 12.5px;
+  font-size: 0.7812rem;
   color: var(--ink3);
 }
 
 .study-card__q {
-  font-size: calc(23px * var(--qfit, 1));
+  font-size: calc(1.4375rem * var(--qfit, 1));
   font-weight: 500;
   line-height: 1.6;
   text-wrap: pretty;
 }
 
 .study-card__q--answered {
-  font-size: calc(19px * min(var(--qfit, 1), 1));
+  font-size: calc(1.1875rem * min(var(--qfit, 1), 1));
   color: var(--ink2);
 }
 
 .study-card__a {
-  font-size: calc(16px * var(--afit, 1));
+  font-size: calc(1rem * var(--afit, 1));
   line-height: 1.7;
 }
 
@@ -271,7 +287,7 @@
 }
 
 .study-card__note {
-  font-size: calc(15px * var(--afit, 1));
+  font-size: calc(0.9375rem * var(--afit, 1));
   line-height: 1.7;
   color: var(--ink2);
 }
@@ -289,20 +305,20 @@
   }
 
   .study-card__head {
-    font-size: 13px;
+    font-size: 0.8125rem;
   }
 
   .study-card__q {
-    font-size: calc(25px * var(--qfit, 1));
+    font-size: calc(1.5625rem * var(--qfit, 1));
   }
 
   .study-card__q--answered {
-    font-size: calc(24px * min(var(--qfit, 1), 1));
+    font-size: calc(1.5rem * min(var(--qfit, 1), 1));
     color: var(--ink);
   }
 
   .study-card__a {
-    font-size: calc(17px * var(--afit, 1));
+    font-size: calc(1.0625rem * var(--afit, 1));
   }
 
   .study-card--min {
@@ -339,11 +355,11 @@
 
 .rating__label {
   font-weight: 600;
-  font-size: 17px;
+  font-size: 1.0625rem;
 }
 
 .rating__sub {
-  font: 12px var(--font-mono);
+  font: 0.75rem var(--font-mono);
   opacity: 0.85;
   white-space: nowrap;
 }
@@ -389,8 +405,8 @@
   border: 1px solid var(--line);
   background: repeating-linear-gradient(135deg, var(--surface2) 0 8px, var(--bg) 8px 16px);
   direction: ltr;
-  touch-action: none;
   user-select: none;
+  -webkit-user-select: none;
 }
 
 .occ-stage img {
@@ -409,7 +425,7 @@
   position: absolute;
   left: 12px;
   bottom: 10px;
-  font: 11px var(--font-mono);
+  font: 0.6875rem var(--font-mono);
   color: var(--ink3);
 }
 
@@ -419,7 +435,7 @@
   border-radius: 5px;
   background: var(--surface);
   border: 1px solid var(--line2);
-  font: 500 11.5px var(--font-latin);
+  font: 500 0.7812rem var(--font-latin);
   color: var(--ink);
   white-space: nowrap;
   transform: translateY(0);
@@ -430,7 +446,7 @@
   border-radius: 6px;
   display: grid;
   place-items: center;
-  font: 600 15px var(--font-latin);
+  font: 600 0.9375rem var(--font-latin);
   overflow: hidden;
   text-align: center;
   line-height: 1.1;
@@ -455,7 +471,7 @@
   border: 2px solid var(--occ);
   box-shadow: 0 0 0 4px var(--occ-soft);
   color: var(--ink);
-  font-size: 14px;
+  font-size: 0.875rem;
   padding: 0 4px;
 }
 
@@ -467,7 +483,7 @@
   border: 1.5px solid var(--occ);
   display: grid;
   place-items: center;
-  font: 600 12px var(--font-mono);
+  font: 600 0.75rem var(--font-mono);
   color: var(--hard);
   cursor: move;
 }
@@ -478,13 +494,59 @@
 }
 
 .occ-handle {
+  --size: 14px;
   position: absolute;
-  width: 14px;
-  height: 14px;
+  /* Divided by the zoom so handles stay the same size on screen while zoomed in. */
+  width: calc(var(--size) / var(--zoom, 1));
+  height: calc(var(--size) / var(--zoom, 1));
   background: var(--surface);
-  border: 2px solid var(--accent);
+  border: calc(2px / var(--zoom, 1)) solid var(--accent);
   border-radius: 3px;
   transform: translate(-50%, -50%);
+}
+
+/* Invisible 44px hit area around each handle */
+.occ-handle::after {
+  content: '';
+  position: absolute;
+  inset: calc((var(--size) - 44px) / 2 / var(--zoom, 1));
+}
+
+@media (pointer: coarse) {
+  .occ-handle {
+    --size: 24px;
+    border-radius: 50%;
+  }
+}
+
+/* ── Editor: zoom layer ── */
+.occ-editor {
+  position: relative;
+}
+
+.occ-layer {
+  position: relative;
+  transform-origin: 0 0;
+  will-change: transform;
+}
+
+.occ-layer .occ-rect {
+  border-width: calc(1.5px / var(--zoom, 1));
+  font-size: calc(0.75rem / var(--zoom, 1));
+}
+
+.occ-zoom-reset {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: var(--r-pill);
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  border: 1px solid var(--line2);
+  box-shadow: var(--shadow);
+  font-size: 0.8125rem;
+  color: var(--ink);
 }
 
 .occ-num {
@@ -495,7 +557,7 @@
   color: var(--hard);
   display: grid;
   place-items: center;
-  font: 600 12px var(--font-mono);
+  font: 600 0.75rem var(--font-mono);
   flex: none;
 }
 
@@ -505,7 +567,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--ink2);
   background: var(--surface2);
   border-radius: 10px;
@@ -531,7 +593,7 @@
 }
 
 .step__n {
-  font: 600 13px var(--font-mono);
+  font: 600 0.8125rem var(--font-mono);
   color: var(--accent);
   padding-top: 2px;
   flex: none;
@@ -546,12 +608,12 @@
 }
 
 .step__title {
-  font-size: 15px;
+  font-size: 0.9375rem;
   font-weight: 600;
 }
 
 .step__text {
-  font-size: 15px;
+  font-size: 0.9375rem;
   line-height: 1.7;
 }
 
@@ -623,11 +685,11 @@
 }
 
 .stats3__n {
-  font: 500 28px var(--font-latin);
+  font: 500 1.75rem var(--font-latin);
 }
 
 .stats3__l {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--ink2);
 }
 
@@ -700,7 +762,7 @@
 }
 
 .toolbar__label {
-  font-size: 12px;
+  font-size: 0.75rem;
   color: var(--ink3);
   padding: 0 6px;
 }
@@ -715,7 +777,14 @@
   justify-content: center;
   gap: 6px;
   color: var(--ink2);
-  font: italic 15px var(--font-math);
+  font: italic 0.9375rem var(--font-math);
+}
+
+@media (pointer: coarse) {
+  .toolbar__btn {
+    height: var(--h-md);
+    min-width: var(--h-md);
+  }
 }
 
 .toolbar__btn:hover {
@@ -723,13 +792,13 @@
 }
 
 .toolbar__btn--text {
-  font: 500 13px var(--font-sans);
+  font: 500 0.8125rem var(--font-sans);
 }
 
 .toolbar__btn--cloze {
   background: var(--cloze-soft);
   color: var(--cloze);
-  font: 600 14px var(--font-sans);
+  font: 600 0.875rem var(--font-sans);
 }
 
 .toolbar__sep {
@@ -740,7 +809,7 @@
 }
 
 .preview-label {
-  font-size: 13px;
+  font-size: 0.8125rem;
   color: var(--ink2);
 }
 
@@ -758,7 +827,7 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  font-size: 14px;
+  font-size: 0.875rem;
   font-weight: 600;
 }
 
@@ -767,7 +836,7 @@
 .import-summary {
   display: flex;
   gap: 14px;
-  font-size: 13.5px;
+  font-size: 0.8438rem;
   flex-wrap: wrap;
 }
 
@@ -814,7 +883,7 @@
 }
 
 .file-chip__type {
-  font: 600 11px var(--font-mono);
+  font: 600 0.75rem var(--font-mono);
   padding: 6px;
   border-radius: 6px;
   background: var(--surface2);
@@ -831,7 +900,7 @@
   gap: 10px;
   color: var(--ink2);
   text-align: center;
-  font-size: 15px;
+  font-size: 0.9375rem;
   cursor: pointer;
 }
 
@@ -897,7 +966,7 @@
   .done-actions .btn {
     height: 50px;
     border-radius: 12px;
-    font-size: 16px;
+    font-size: 1rem;
   }
 }
 
@@ -932,7 +1001,16 @@
   border: none;
   margin: 0;
   background: none;
-  font-size: 16px;
+  font-size: 1rem;
+}
+
+/* Grows with its content: from `rows` lines up to half the screen, then scrolls. */
+.rich-field__input {
+  field-sizing: content;
+  resize: none;
+  min-height: calc(var(--rows, 3) * 1.7em + 24px);
+  max-height: 50dvh;
+  overflow-y: auto;
 }
 
 @media (min-width: 960px) {
@@ -1027,7 +1105,7 @@
 .math-editor__palette .toolbar__btn {
   min-width: 40px;
   height: 38px;
-  font: 17px var(--font-math);
+  font: 1.0625rem var(--font-math);
   color: var(--ink);
 }
 
@@ -1039,7 +1117,7 @@
 math-field.math-editor__field {
   width: 100%;
   min-height: 72px;
-  font-size: 26px;
+  font-size: 1.625rem;
   padding: 10px 12px;
   border: 1.5px solid var(--accent);
   border-radius: var(--r-md);
@@ -1091,6 +1169,33 @@ math-field.math-editor__field::part(menu-toggle) {
   min-height: 80px; /* same height for "show answer" and the ratings, so the card doesn't jump */
 }
 
+/* Phones: the card sits right above the buttons, and the buttons sit at the bottom (thumb zone).
+   Long cards scroll under the button bar, so rating never needs scrolling. */
+@media (max-width: 959.98px) {
+  .study__body {
+    justify-content: flex-end;
+    padding-bottom: 0;
+  }
+
+  .study__body--top {
+    justify-content: flex-start;
+  }
+
+  .study__body .study__actions {
+    position: sticky;
+    bottom: 0;
+    z-index: 5;
+    padding: 18px 16px calc(14px + var(--safe-bottom));
+    background: linear-gradient(to bottom, transparent, var(--bg) 16px);
+  }
+
+  /* Revealed steps scroll into view above the button bar. */
+  .step,
+  .steps {
+    scroll-margin-bottom: 120px;
+  }
+}
+
 .flip-stage--tap {
   cursor: pointer;
   -webkit-user-select: text;
@@ -1129,4 +1234,233 @@ math-field.math-editor__field::part(menu-toggle) {
   background: transparent;
   border: 2.5px solid var(--occ);
   box-shadow: 0 0 0 4px var(--occ-soft);
+}
+
+/* Image editor (phone): label field for the selected rectangle, right under the image */
+.occ-inline-label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+}
+
+.occ-tools .segmented__opt {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.icon-btn:disabled {
+  opacity: 0.4;
+}
+
+/* ───────────────────────── Formula editor: full screen on phones ───────────────────────── */
+
+.math-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+  animation: fade 0.15s ease;
+}
+
+.math-screen__bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 52px;
+  padding: max(6px, env(safe-area-inset-top)) 6px 0;
+  border-bottom: 1px solid var(--line);
+  flex: none;
+}
+
+.math-screen__body {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px 16px;
+}
+
+.math-screen .math-editor__field {
+  font-size: 1.75rem;
+}
+
+/* Template keys on the palette (desktop): Hebrew names, not math italics */
+.math-editor__palette .toolbar__btn:not(:empty) {
+  white-space: nowrap;
+}
+
+/* MathLive's phone keyboard: RTL page, Hebrew tab labels */
+.ML__keyboard {
+  direction: ltr;
+  --keycap-small-font-size: 14px;
+}
+
+/* Symbol row in the text field toolbar: scrolls sideways, never wraps */
+.rich-field__symbols {
+  display: flex;
+  gap: 2px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  flex: 1;
+  min-width: 0;
+  font-style: normal;
+}
+
+.rich-field__symbols::-webkit-scrollbar {
+  display: none;
+}
+
+.rich-field__symbols .toolbar__btn {
+  font-style: normal;
+  flex: none;
+}
+
+.rich-field__toolbar {
+  flex-wrap: nowrap;
+}
+
+.rich-field__toolbar > button {
+  flex: none;
+}
+
+/* ───────────────────────── Study image: zoom ───────────────────────── */
+
+.occ-zoomable {
+  position: relative;
+}
+
+.occ-zoom-btn {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: color-mix(in srgb, var(--surface) 90%, transparent);
+  border: 1px solid var(--line2);
+  box-shadow: var(--shadow);
+  color: var(--ink);
+}
+
+.zoom-viewer {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: var(--canvas);
+  animation: fade 0.15s ease;
+}
+
+.zoom-viewer__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: max(6px, env(safe-area-inset-top)) max(10px, env(safe-area-inset-right)) 6px max(16px, env(safe-area-inset-left));
+  flex: none;
+}
+
+.zoom-viewer__frame {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  touch-action: none;
+}
+
+.zoom-viewer__content {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform-origin: 0 0;
+  will-change: transform;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+/* ───────────────────────── Swipe (study setting) ───────────────────────── */
+
+.flip-stage--swipe {
+  touch-action: pan-y; /* vertical = page scroll, horizontal = swipe */
+}
+
+.swipe-layer {
+  position: relative;
+  transition: transform 0.2s ease;
+}
+
+.swipe-badge {
+  position: absolute;
+  top: 18px;
+  padding: 6px 16px;
+  border-radius: var(--r-pill);
+  font-size: 1.125rem;
+  font-weight: 700;
+  border: 2px solid currentColor;
+  background: var(--surface);
+  pointer-events: none;
+}
+
+.swipe-badge--good {
+  left: 18px;
+  color: var(--good);
+}
+
+.swipe-badge--again {
+  right: 18px;
+  color: var(--again);
+}
+
+/* Kept last so it wins over the component rules. */
+/* Touch screens: fields never go under 16px, even at a small system text size (iOS zooms in). */
+@media (pointer: coarse) {
+  .input,
+  .textarea,
+  .select,
+  .search input,
+  .tag-input input,
+  .rich-field__input,
+  .textarea--code {
+    font-size: max(16px, 1rem);
+  }
+}
+
+/* Landscape phones: the math keyboard takes most of the height, so keep the field compact. */
+@media (max-height: 500px) {
+  .math-screen__bar {
+    min-height: 40px;
+    padding-top: 0;
+  }
+
+  .math-screen__body {
+    padding-top: 6px;
+    gap: 8px;
+  }
+
+  .math-screen .math-editor__host,
+  .math-screen math-field.math-editor__field {
+    min-height: 56px;
+  }
+
+  .math-screen math-field.math-editor__field {
+    font-size: 22px;
+    padding: 4px 10px;
+  }
+
+  .math-screen__hint {
+    display: none;
+  }
 }

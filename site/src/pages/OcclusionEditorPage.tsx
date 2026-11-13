@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { Icon } from '../components/Icon'
-import { OcclusionCanvas } from '../components/OcclusionCanvas'
+import { OcclusionCanvas, type CanvasTool } from '../components/OcclusionCanvas'
 import { Button, Field, IconButton, Spinner, Kbd, ModeCard, Segmented, TagInput } from '../components/ui'
 import { applyNotePlan, deleteCards, deleteImages, newId, saveImage, useCards, useDeck, useDecks, useImage } from '../data/store'
 import { ALLOWED_IMAGE_TYPES, compressImage, dataUrlBytes, type CompressedImage } from '../lib/image'
 import { planOcclusionNote } from '../lib/notes'
 import type { Mask, OcclusionMode, RevealStyle } from '../lib/types'
-import { useIsDesktop } from '../lib/useMedia'
+import { useIsDesktop, useMedia } from '../lib/useMedia'
+import { goBack } from '../lib/nav'
 
 /**
  * Image occlusion editor. A picked / pasted image is compressed in the browser
@@ -27,6 +28,7 @@ function OcclusionEditor() {
   const { deckId = '', noteId: routeNoteId } = useParams()
   const navigate = useNavigate()
   const desktop = useIsDesktop()
+  const touch = useMedia('(pointer: coarse)')
   const { deck } = useDeck(deckId)
   const { cards } = useCards(deckId)
 
@@ -51,6 +53,40 @@ function OcclusionEditor() {
   const [busy, setBusy] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
+  const inlineLabelRef = useRef<HTMLInputElement>(null)
+  /** Touch: draw rectangles, or scroll / move the zoomed image. */
+  const [tool, setTool] = useState<CanvasTool>('draw')
+
+  /* ── Undo: a snapshot of the rectangles before every change (last 30). ── */
+  const undoStack = useRef<Mask[][]>([])
+  const [undoCount, setUndoCount] = useState(0)
+  const checkpoint = () => {
+    undoStack.current = [...undoStack.current.slice(-29), masks]
+    setUndoCount(undoStack.current.length)
+  }
+  const undo = () => {
+    const prev = undoStack.current.pop()
+    if (!prev) return
+    setMasks(prev)
+    setSelected(null)
+    setUndoCount(undoStack.current.length)
+  }
+  const removeMask = (id: string | null) => {
+    if (!id) return
+    checkpoint()
+    setMasks((m) => m.filter((x) => x.id !== id))
+    setSelected(null)
+  }
+  /** Typing a label is one undo step per field visit (snapshot at the first keystroke). */
+  const labelUndoFor = useRef<string | null>(null)
+  const setLabel = (id: string, label: string) => {
+    if (labelUndoFor.current !== id) {
+      checkpoint()
+      labelUndoFor.current = id
+    }
+    setMasks((ms) => ms.map((x) => (x.id === id ? { ...x, label } : x)))
+  }
+  const endLabel = () => (labelUndoFor.current = null)
 
   const stored = useImage(pending ? undefined : (imageId ?? undefined))
   const src = pending?.data ?? stored.src
@@ -70,6 +106,24 @@ function OcclusionEditor() {
     }
   }
 
+  /** Phones have no Ctrl+V: read an image from the clipboard with the async Clipboard API. */
+  const canReadClipboard = typeof navigator !== 'undefined' && !!navigator.clipboard && 'read' in navigator.clipboard
+  const pasteFromClipboard = async () => {
+    setImageError(null)
+    try {
+      for (const item of await navigator.clipboard.read()) {
+        const type = item.types.find((t) => t.startsWith('image/'))
+        if (type) {
+          const blob = await item.getType(type)
+          return loadFile(new File([blob], 'clipboard', { type }))
+        }
+      }
+      setImageError('אין תמונה בלוח. צלמו מסך או העתיקו תמונה, ואז נסו שוב.')
+    } catch {
+      setImageError('הדפדפן לא איפשר לקרוא מהלוח.')
+    }
+  }
+
   // Paste from clipboard (Ctrl+V)
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
@@ -83,26 +137,32 @@ function OcclusionEditor() {
     return () => window.removeEventListener('paste', onPaste)
   }, [])
 
-  // Delete / Backspace removes the selected rectangle (when not typing)
+  // Delete / Backspace removes the selected rectangle, Ctrl/Cmd+Z undoes (when not typing)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if ((e.key === 'Delete' || e.key === 'Backspace') && selected) {
-        setMasks((m) => m.filter((x) => x.id !== selected))
-        setSelected(null)
+      if ((e.key === 'Delete' || e.key === 'Backspace') && selected) removeMask(selected)
+      else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
+        e.preventDefault()
+        undo()
       }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selected])
+  })
 
-  // Focus the label input of a freshly drawn rectangle
+  // Focus the label input of a freshly drawn rectangle (only when labels are needed).
+  // On phones that's the inline field right under the image, so the box stays in view.
+  const needsLabelsNow = revealStyle === 'label'
   useEffect(() => {
-    if (!selected) return
-    const input = listRef.current?.querySelector<HTMLInputElement>(`[data-mask="${selected}"]`)
+    if (!selected || !needsLabelsNow) return
+    const input = desktop
+      ? listRef.current?.querySelector<HTMLInputElement>(`[data-mask="${selected}"]`)
+      : inlineLabelRef.current
     if (input && !input.value) input.focus({ preventScroll: true })
-  }, [selected, masks.length])
+  }, [selected, masks.length, desktop, needsLabelsNow])
 
+  const selectedMask = masks.find((m) => m.id === selected)
   const labeled = masks.filter((m) => m.label.trim())
   const unlabeled = masks.length - labeled.length
   // Labels are required only when the answer side shows the typed text.
@@ -130,6 +190,8 @@ function OcclusionEditor() {
     navigate(`/deck/${deckId}`)
   }
 
+  const back = () => goBack(navigate, `/deck/${deckId}`)
+
   const remove = async () => {
     if (!confirm(`למחוק את התמונה ואת כל ${siblings.length} הכרטיסים שלה?`)) return
     await deleteCards(deckId, siblings.map((c) => c.id))
@@ -152,6 +214,8 @@ function OcclusionEditor() {
       selectedId={selected}
       onSelect={setSelected}
       onChange={setMasks}
+      tool={desktop ? 'draw' : tool}
+      onGestureStart={checkpoint}
       newMaskId={() => 'm' + newId().slice(0, 8)}
       caption={src ? undefined : stored.loading ? 'טוען תמונה…' : 'תמונה לדוגמה'}
     />
@@ -163,10 +227,18 @@ function OcclusionEditor() {
     <button type="button" className="dropzone" style={{ minHeight: 260, justifyContent: 'center' }} onClick={() => fileRef.current?.click()}>
       <Icon name="image" size={32} />
       <div style={{ fontWeight: 600, color: 'var(--ink)' }}>בחירת תמונה</div>
-      <div className="faint" style={{ fontSize: 13.5 }}>
-        או הדבקה מהלוח <Kbd>Ctrl+V</Kbd>
-      </div>
+      {!touch && (
+        <div className="faint" style={{ fontSize: 13.5 }}>
+          או הדבקה מהלוח <Kbd>Ctrl+V</Kbd>
+        </div>
+      )}
     </button>
+  )
+
+  const pasteButton = canReadClipboard && (
+    <Button icon="paste" onClick={pasteFromClipboard} style={{ fontSize: 14, flex: '1 0 auto' }}>
+      הדבקת תמונה
+    </Button>
   )
 
   const canvas = (
@@ -198,20 +270,16 @@ function OcclusionEditor() {
             className="input"
             data-mask={m.id}
             dir="auto"
-            style={{ minHeight: 36, border: 'none', background: 'transparent', padding: '0 4px', fontSize: 15 }}
+            enterKeyHint="next"
+            autoComplete="off"
+            style={{ minHeight: 44, border: 'none', background: 'transparent', padding: '0 4px', fontSize: 16 }}
             value={m.label}
             placeholder={needsLabels ? 'מה מוסתר כאן?' : 'תווית (לא חובה)'}
             onFocus={() => setSelected(m.id)}
-            onChange={(e) => setMasks(masks.map((x) => (x.id === m.id ? { ...x, label: e.target.value } : x)))}
+            onBlur={endLabel}
+            onChange={(e) => setLabel(m.id, e.target.value)}
           />
-          <IconButton
-            icon="close"
-            label="מחיקת מלבן"
-            onClick={() => {
-              setMasks(masks.filter((x) => x.id !== m.id))
-              setSelected(null)
-            }}
-          />
+          <IconButton icon="close" label="מחיקת מלבן" onClick={() => removeMask(m.id)} />
         </div>
       ))}
     </div>
@@ -246,7 +314,7 @@ function OcclusionEditor() {
   const meta = (
     <>
       <Field label="שאלה מעל התמונה">
-        <input className="input" dir="auto" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
+        <input className="input" dir="auto" enterKeyHint="done" value={prompt} onChange={(e) => setPrompt(e.target.value)} />
       </Field>
       <Field label="תגיות">
         <TagInput tags={tags} onChange={setTags} />
@@ -262,7 +330,7 @@ function OcclusionEditor() {
       {!desktop && (
       <div className="stack" style={{ flex: 1 }}>
         <div className="topbar">
-          <IconButton icon="back" label="חזרה" onClick={() => navigate(-1)} />
+          <IconButton icon="back" label="חזרה" onClick={back} />
           <div className="topbar__title">הסתרת תמונה</div>
           <button type="button" className="topbar__action" onClick={save} disabled={!valid || busy} style={!valid ? { color: 'var(--ink3)' } : undefined}>
             שמירה
@@ -288,27 +356,54 @@ function OcclusionEditor() {
               ]}
             />
           </div>
+          {hasImage && (
+            <div className="row occ-tools" style={{ gap: 6 }}>
+              <Segmented
+                className="spacer"
+                value={tool}
+                onChange={setTool}
+                label="כלי"
+                options={[
+                  { value: 'draw', label: <><Icon name="rect" size={16} /> ציור</> },
+                  { value: 'pan', label: <><Icon name="hand" size={16} /> גלילה</> },
+                ]}
+              />
+              <IconButton icon="undo" label="ביטול פעולה אחרונה" onClick={undo} disabled={!undoCount} />
+              <IconButton icon="trash" label="מחיקת המלבן המסומן" onClick={() => removeMask(selected)} disabled={!selected} />
+            </div>
+          )}
           {canvas}
           {hasImage && (
-            <div className="row" style={{ gap: 6 }}>
-              <Button className="spacer" variant="soft" style={{ fontSize: 14 }}>
-                <Icon name="rect" size={16} />
-                גרור כדי לצייר מלבן
-              </Button>
-              <Button className="spacer" onClick={() => fileRef.current?.click()} style={{ fontSize: 14 }}>
-                החלף תמונה
-              </Button>
-              <IconButton
-                icon="trash"
-                label="מחיקת המלבן המסומן"
-                onClick={() => {
-                  if (!selected) return
-                  setMasks(masks.filter((x) => x.id !== selected))
-                  setSelected(null)
-                }}
+            <div className="faint" style={{ fontSize: 13 }}>
+              {tool === 'draw' ? 'גררו על התמונה כדי לצייר מלבן. שתי אצבעות: זום והזזה.' : 'גלילה רגילה של הדף. שתי אצבעות: זום והזזה.'}
+            </div>
+          )}
+          {selectedMask && (
+            <div className="occ-inline-label">
+              <span className="occ-num">{masks.indexOf(selectedMask) + 1}</span>
+              <input
+                ref={inlineLabelRef}
+                className="input"
+                dir="auto"
+                enterKeyHint="done"
+                autoComplete="off"
+                value={selectedMask.label}
+                placeholder={needsLabels ? 'מה מוסתר כאן?' : 'תווית (לא חובה)'}
+                onBlur={endLabel}
+                onChange={(e) => setLabel(selectedMask.id, e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && (e.currentTarget.blur(), setSelected(null))}
               />
             </div>
           )}
+          {hasImage && (
+            <div className="row" style={{ gap: 6 }}>
+              <Button className="spacer" icon="image" onClick={() => fileRef.current?.click()} style={{ fontSize: 14 }}>
+                החלפת תמונה
+              </Button>
+              {pasteButton}
+            </div>
+          )}
+          {!hasImage && !compressing && pasteButton}
           {rectList}
           {meta}
           {!isNew && siblings.length > 0 && (
@@ -330,7 +425,7 @@ function OcclusionEditor() {
       <div className="stack" style={{ flex: 1, minHeight: 0, height: '100dvh' }}>
         <div className="editor-head">
           <div className="row" style={{ gap: 12 }}>
-            <button type="button" className="icon-btn" aria-label="חזרה" onClick={() => navigate(-1)}>
+            <button type="button" className="icon-btn" aria-label="חזרה" onClick={back}>
               <Icon name="back" size={20} />
             </button>
             <span style={{ fontSize: 17, fontWeight: 600 }}>{isNew ? 'כרטיס הסתרת תמונה חדש' : 'עריכת הסתרת תמונה'}</span>
@@ -339,7 +434,7 @@ function OcclusionEditor() {
             </span>
           </div>
           <div className="row" style={{ gap: 8 }}>
-            <Button variant="ghost" size="sm" style={{ height: 38 }} onClick={() => navigate(-1)}>
+            <Button variant="ghost" size="sm" style={{ height: 38 }} onClick={back}>
               ביטול
             </Button>
             <Button variant="primary" size="sm" style={{ height: 38, padding: '0 18px' }} disabled={!valid || busy} onClick={save}>
@@ -359,20 +454,14 @@ function OcclusionEditor() {
               <span className="btn btn--secondary btn--sm" style={{ height: 36 }}>
                 הדבקה <Kbd>Ctrl+V</Kbd>
               </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                style={{ height: 36 }}
-                disabled={!selected}
-                onClick={() => {
-                  setMasks(masks.filter((x) => x.id !== selected))
-                  setSelected(null)
-                }}
-              >
+              <Button size="sm" variant="ghost" style={{ height: 36 }} disabled={!selected} onClick={() => removeMask(selected)}>
                 מחיקת מלבן
               </Button>
+              <Button size="sm" variant="ghost" icon="undo" style={{ height: 36 }} disabled={!undoCount} onClick={undo}>
+                ביטול
+              </Button>
               <span className="faint" style={{ marginInlineStart: 'auto', fontSize: 13 }}>
-                גרור על התמונה כדי לצייר מלבן
+                גרור על התמונה כדי לצייר מלבן · Ctrl+גלגלת לזום
               </span>
             </div>
             {canvas}

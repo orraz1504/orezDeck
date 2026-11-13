@@ -165,6 +165,9 @@ export function ImportPage() {
         onChange={(e) => setJsonText(e.target.value)}
         placeholder={'{"deck": "שם", "cards": [\n  {"type": "basic", "front": "...", "back": "...", "tags": ["..."]},\n  {"type": "cloze", "text": "... {{c1::...}} ..."}\n]}'}
         spellCheck={false}
+        autoCorrect="off"
+        autoCapitalize="off"
+        autoComplete="off"
         rows={8}
       />
       {json?.error && <div style={{ color: 'var(--again)', fontSize: 14 }}>{json.error}</div>}
@@ -211,6 +214,8 @@ export function ImportPage() {
           }}
           placeholder={'או הדבק כאן טבלה (שאלה, תשובה, תגיות)'}
           spellCheck={false}
+          autoCorrect="off"
+          autoCapitalize="off"
         />
       )}
 
@@ -263,7 +268,7 @@ export function ImportPage() {
       {counts.error > 0 && <span style={{ color: 'var(--again)' }}>{counts.error} שגיאות</span>}
       {counts.dup > 0 && <span style={{ color: 'var(--hard)' }}>{counts.dup} כפילויות</span>}
       {(counts.error > 0 || counts.dup > 0) && (
-        <button type="button" className="faint" style={{ marginInlineStart: 'auto', fontSize: 13.5 }} onClick={() => setOnlyProblems((v) => !v)}>
+        <button type="button" className="faint link-btn" style={{ marginInlineStart: 'auto', fontSize: 13.5 }} onClick={() => setOnlyProblems((v) => !v)}>
           הצג: {onlyProblems ? <b>רק בעיות</b> : <b>הכל</b>}
         </button>
       )}

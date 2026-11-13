@@ -7,11 +7,10 @@
  * the surrounding RTL text. Every text block gets dir="auto" because content
  * mixes Hebrew and English.
  */
-import katex from 'katex'
-// Chemistry: \ce{H2O}, \ce{CO2 + H2O <=> H2CO3}, \pu{12 mL}
-import 'katex/contrib/mhchem'
 import { Fragment, memo, type ReactNode } from 'react'
 import { replaceClozes } from '../lib/cloze'
+// KaTeX loads lazily (with mhchem for \ce{H2O}, \pu{12 mL}); see katexLoader.
+import { getKatex, useKatexReady } from '../lib/katexLoader'
 
 export interface ClozeOptions {
   /** The cN this card asks about. Undefined = show every cloze as plain text. */
@@ -38,6 +37,9 @@ function escapeHtml(s: string): string {
   return s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!)
 }
 function renderTex(tex: string, display: boolean): string {
+  const katex = getKatex()
+  // Not loaded yet (first moments after start): show the source; nothing is cached.
+  if (!katex) return `<span class="math-pending">${escapeHtml(tex)}</span>`
   const key = (display ? 'D' : 'I') + tex
   let html = katexCache.get(key)
   if (html === undefined) {
@@ -269,6 +271,7 @@ function blocks(s: string, ctx: Ctx): ReactNode[] {
 }
 
 function RichTextImpl({ text, cloze, inline: inlineOnly = false, className }: Props) {
+  useKatexReady()
   if (!text) return null
   const ctx: Ctx = { display: [], inline: [], clozes: [], inlineOnly }
   const s = extract(text, cloze, ctx)
