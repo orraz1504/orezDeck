@@ -130,6 +130,9 @@ export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelec
     }
     const up = () => {
       if (drag.kind === 'draw') {
+        // A label field left focused keeps the phone keyboard open; close it once the box is drawn
+        // (not at the start, which would resize the page under the finger).
+        if (document.activeElement instanceof HTMLInputElement) document.activeElement.blur()
         const m = masksRef.current.find((k) => k.id === drag.id)
         if (m && (m.w < MIN || m.h < MIN)) {
           onChange(masksRef.current.filter((k) => k.id !== drag.id))

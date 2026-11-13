@@ -4,13 +4,15 @@
  * read LaTeX. Tab / arrow keys move between the boxes.
  *
  * Phones: a full-screen editor with Cancel / Insert at the top and our own
- * math keyboard (123 · statistics · Greek · chemistry · templates) at the
- * bottom, so the keyboard can never cover the formula or the buttons.
+ * math keyboard (123 · abc · math · chemistry) at the bottom, so the keyboard
+ * can never cover the formula or the buttons.
+ * While the caret is inside a subscript / superscript / fraction, a banner says
+ * so ("writing below") with a button back to the normal line.
  * Desktop: a dialog with a symbol palette and the physical keyboard.
  */
 import { useEffect, useRef, useState } from 'react'
 import type { MathfieldElement } from 'mathlive'
-import { MATH_TEMPLATES, PHONE_LAYOUTS } from '../lib/mathKeyboard'
+import { PHONE_LAYOUTS } from '../lib/mathKeyboard'
 import { useMedia } from '../lib/useMedia'
 import { Button, Checkbox, Sheet, Spinner } from './ui'
 
@@ -74,10 +76,6 @@ const GROUPS: { name: string; items: Template[] }[] = [
       { label: '[ ]', title: 'ריכוז', latex: '\\left[#0\\right]' },
     ],
   },
-  {
-    name: 'תבניות',
-    items: MATH_TEMPLATES.map((t) => ({ label: t.name, title: t.latex, latex: t.latex })),
-  },
 ]
 
 let mathliveReady: Promise<typeof import('mathlive')> | null = null
@@ -116,6 +114,36 @@ export function MathEditor({ initial, display: initialDisplay, editing, onSubmit
   const fullScreen = useMedia('(max-width: 959.98px)')
   /** Height of the math keyboard, so the content above it can scroll clear of it. */
   const [kbHeight, setKbHeight] = useState(0)
+  /** Where the caret is: on the normal line (null), or below / above it (subscript, superscript, fraction…). */
+  const [level, setLevel] = useState<'below' | 'above' | 'inside' | null>(null)
+
+  useEffect(() => {
+    const mf = mfRef.current
+    if (!ready || !mf) return
+    const update = () => {
+      const info = mf.getElementInfo(mf.position)
+      if (!info?.depth) return setLevel(null)
+      // Compare the caret's box with the middle of the field: lower = subscript / denominator.
+      const field = mf.getBoundingClientRect()
+      const mid = field.top + field.height / 2
+      const b = info.bounds
+      const center = b ? b.top + b.height / 2 : mid
+      setLevel(center > mid + 3 ? 'below' : center < mid - 3 ? 'above' : 'inside')
+    }
+    mf.addEventListener('selection-change', update)
+    mf.addEventListener('input', update)
+    return () => {
+      mf.removeEventListener('selection-change', update)
+      mf.removeEventListener('input', update)
+    }
+  }, [ready])
+
+  const backToLine = () => {
+    const mf = mfRef.current
+    if (!mf) return
+    mf.executeCommand('moveAfterParent')
+    mf.focus()
+  }
 
   useEffect(() => {
     const kb = window.mathVirtualKeyboard
@@ -209,12 +237,23 @@ export function MathEditor({ initial, display: initialDisplay, editing, onSubmit
 
   const hint = touch ? (
     <div className="faint math-screen__hint" style={{ fontSize: 13, lineHeight: 1.6 }}>
-      ריבוע ריק = מקום למספר. לחצו על ריבוע או השתמשו בחצים כדי לעבור ביניהם. בלשונית <b>תבניות</b> יש נוסחאות מוכנות.
+      ריבוע ריק = מקום למספר. לחצו על ריבוע או השתמשו בחצים כדי לעבור ביניהם.
     </div>
   ) : (
     <div className="faint" style={{ fontSize: 12.5, lineHeight: 1.6 }}>
       הקלידו ישר בתיבה: <bdi dir="ltr">/</bdi> יוצר שבר, <bdi dir="ltr">^</bdi> חזקה, <bdi dir="ltr">_</bdi> אינדקס. ריבוע ריק = מקום למספר. מעבר
       בין ריבועים: <bdi dir="ltr">Tab</bdi> או החצים.
+    </div>
+  )
+
+  const levelBanner = level && (
+    <div className={`math-level math-level--${level}`} role="status">
+      <span>
+        {level === 'below' ? '↓ כותבים עכשיו למטה (מספר תחתון)' : level === 'above' ? '↑ כותבים עכשיו למעלה (חזקה / מטען)' : 'כותבים בתוך הנוסחה'}
+      </span>
+      <button type="button" onMouseDown={(e) => e.preventDefault()} onClick={backToLine}>
+        חזרה לשורה ↩
+      </button>
     </div>
   )
 
@@ -263,6 +302,7 @@ export function MathEditor({ initial, display: initialDisplay, editing, onSubmit
         <div className="math-screen__body" style={{ paddingBottom: kbHeight + 16 }}>
           {palette}
           {field}
+          {levelBanner}
           {hint}
           {options}
         </div>
@@ -275,6 +315,7 @@ export function MathEditor({ initial, display: initialDisplay, editing, onSubmit
       <div className="math-editor">
         {palette}
         {field}
+        {levelBanner}
         {hint}
         {options}
         <div className="row" style={{ gap: 8 }}>

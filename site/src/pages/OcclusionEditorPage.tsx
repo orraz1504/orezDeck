@@ -53,7 +53,6 @@ function OcclusionEditor() {
   const [busy, setBusy] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const listRef = useRef<HTMLDivElement>(null)
-  const inlineLabelRef = useRef<HTMLInputElement>(null)
   /** Touch: draw rectangles, or scroll / move the zoomed image. */
   const [tool, setTool] = useState<CanvasTool>('draw')
 
@@ -151,14 +150,13 @@ function OcclusionEditor() {
     return () => window.removeEventListener('keydown', onKey)
   })
 
-  // Focus the label input of a freshly drawn rectangle (only when labels are needed).
-  // On phones that's the inline field right under the image, so the box stays in view.
+  // Desktop: focus the label input of a freshly drawn rectangle (only when labels are needed).
+  // Phones: never — the on-screen keyboard would open and shift the image mid-drawing;
+  // the label field sits right under the image, ready to tap.
   const needsLabelsNow = revealStyle === 'label'
   useEffect(() => {
-    if (!selected || !needsLabelsNow) return
-    const input = desktop
-      ? listRef.current?.querySelector<HTMLInputElement>(`[data-mask="${selected}"]`)
-      : inlineLabelRef.current
+    if (!selected || !needsLabelsNow || !desktop) return
+    const input = listRef.current?.querySelector<HTMLInputElement>(`[data-mask="${selected}"]`)
     if (input && !input.value) input.focus({ preventScroll: true })
   }, [selected, masks.length, desktop, needsLabelsNow])
 
@@ -382,7 +380,6 @@ function OcclusionEditor() {
             <div className="occ-inline-label">
               <span className="occ-num">{masks.indexOf(selectedMask) + 1}</span>
               <input
-                ref={inlineLabelRef}
                 className="input"
                 dir="auto"
                 enterKeyHint="done"

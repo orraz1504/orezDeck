@@ -1169,11 +1169,11 @@ math-field.math-editor__field::part(menu-toggle) {
   min-height: 80px; /* same height for "show answer" and the ratings, so the card doesn't jump */
 }
 
-/* Phones: the card sits right above the buttons, and the buttons sit at the bottom (thumb zone).
-   Long cards scroll under the button bar, so rating never needs scrolling. */
+/* Phones: the card and its buttons are centred together. A long card pushes the buttons
+   down, and then the button bar stays pinned to the bottom, so rating never needs scrolling. */
 @media (max-width: 959.98px) {
   .study__body {
-    justify-content: flex-end;
+    justify-content: center;
     padding-bottom: 0;
   }
 
@@ -1463,4 +1463,38 @@ math-field.math-editor__field::part(menu-toggle) {
   .math-screen__hint {
     display: none;
   }
+}
+
+/* Formula editor: "you're typing below / above the line" */
+math-field.math-editor__field {
+  /* The part being typed (subscript, superscript, fraction box) gets a clear amber tint */
+  --contains-highlight-background-color: var(--occ-soft);
+}
+
+.math-level {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 6px 6px 14px;
+  padding-inline-start: 14px;
+  border-radius: var(--r-md);
+  background: var(--occ-soft);
+  color: var(--ink);
+  font-size: 0.9375rem;
+  font-weight: 600;
+  animation: fade 0.12s ease;
+}
+
+.math-level span {
+  flex: 1;
+}
+
+.math-level button {
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: var(--r-pill);
+  background: var(--occ);
+  color: #fff;
+  font-weight: 700;
+  white-space: nowrap;
 }

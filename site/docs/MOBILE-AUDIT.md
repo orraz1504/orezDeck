@@ -342,3 +342,15 @@ All 24 proposed fixes were applied, with one deliberate exception (see the table
 - the real on-screen keyboard with sheets and editors (the audit used a simulated one);
 - notch padding in landscape;
 - pinch gestures.
+
+---
+
+## 7. Follow-up after testing on the phone (2026-11-13)
+
+- **Image editor:** drawing a box no longer opens the keyboard on phones, which used to shift the image mid-drawing. The label field is right under the image, ready to tap. A label keyboard left open closes once the next box is finished.
+- **Formula keyboard simplified** to four tabs: **123 · abc · מתמטיקה · כימיה**. The statistics, Greek and templates tabs are gone; the common Greek letters moved into מתמטיקה.
+- **Typing below or above the line:**
+  - while the caret is in a subscript, superscript or fraction, an amber banner says "↓ כותבים עכשיו למטה" or "↑ כותבים עכשיו למעלה", with a large **"חזרה לשורה ↩"** button;
+  - every tab also has a "↩ לשורה" key;
+  - the chemistry keys say "X₂ למטה" and "X⁺ למעלה", and element symbols are upright.
+- **Study screen:** card and buttons are centred again. Only when a card is too long for the screen do the buttons stay pinned to the bottom.
