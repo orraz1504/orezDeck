@@ -115,6 +115,32 @@ describe('planSession — continue', () => {
   })
 })
 
+describe('planSession — partial (one category)', () => {
+  it('continue: takes the unseen cards of the subset', () => {
+    const cards = [seen({ id: 'done', seenInRound: 2 }), card({ id: 'fresh' })]
+    const plan = planSession(cards, 2, 'continue', 50, { partial: true })
+    expect(plan.ids).toEqual(['fresh'])
+    expect(plan.round).toBe(2)
+    expect(plan.startsNewRound).toBe(false)
+  })
+
+  it('continue: when the subset is all seen, reviews it without starting a new round', () => {
+    const cards = [seen({ id: 'a', seenInRound: 3, mastery: 4 }), seen({ id: 'b', seenInRound: 3, mastery: 1 })]
+    const plan = planSession(cards, 3, 'continue', 50, { partial: true })
+    expect(plan.ids).toEqual(['b', 'a'])
+    expect(plan.round).toBe(3)
+    expect(plan.startsNewRound).toBe(false)
+  })
+
+  it('all: goes over the subset within the current round', () => {
+    const cards = [seen({ id: 'a', seenInRound: 1, mastery: 3 }), card({ id: 'n' })]
+    const plan = planSession(cards, 1, 'all', 'all', { partial: true })
+    expect(plan.ids).toHaveLength(2)
+    expect(plan.round).toBe(1)
+    expect(plan.startsNewRound).toBe(false)
+  })
+})
+
 describe('planSession — weak', () => {
   it('takes mastery 0–2 and "again"-last, excluding never-seen cards', () => {
     const cards = [

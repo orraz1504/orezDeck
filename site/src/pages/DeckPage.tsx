@@ -22,6 +22,7 @@ import { examSummary, formatEpoch, n } from '../lib/format'
 import { planSession } from '../lib/scheduler'
 import { deckStats } from '../lib/stats'
 import { isLeech, type Card, type SessionSize, type StudyMode } from '../lib/types'
+import { studyUrl } from '../lib/nav'
 
 const SIZES: SessionSize[] = [20, 50, 100, 'all']
 const PAGE = 100
@@ -43,12 +44,19 @@ export function DeckPage() {
   const [size, setSize] = useState<SessionSize>(50)
   const [query, setQuery] = useState('')
   const [tag, setTag] = useState<string | null>(null)
+  /** Category (tag) the next session is limited to; null = whole deck. */
+  const [studyTag, setStudyTag] = useState<string | null>(null)
   const [limit, setLimit] = useState(PAGE)
   const [editing, setEditing] = useState(false)
 
   const round = deck?.roundNumber ?? 1
   const stats = useMemo(() => deckStats(cards, round), [cards, round])
   const tags = useMemo(() => [...new Set(cards.flatMap((c) => c.tags))].sort((a, b) => a.localeCompare(b, 'he')), [cards])
+
+  // Ignore a picked category that no longer exists (its last card was deleted or retagged).
+  const scopeTag = studyTag && tags.includes(studyTag) ? studyTag : null
+  const scoped = useMemo(() => (scopeTag ? cards.filter((c) => c.tags.includes(scopeTag)) : cards), [cards, scopeTag])
+  const scopedStats = useMemo(() => (scopeTag ? deckStats(scoped, round) : stats), [scopeTag, scoped, round, stats])
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
@@ -72,10 +80,11 @@ export function DeckPage() {
     )
   }
 
-  const plan = planSession(cards, round, mode, size)
+  const planOpts = { partial: scopeTag !== null }
+  const plan = planSession(scoped, round, mode, size, planOpts)
   const sessionCount = plan.ids.length
-  const continuePlan = mode === 'continue' ? plan : planSession(cards, round, 'continue', 'all')
-  const startUrl = `/deck/${deckId}/study?mode=${mode}&size=${size}`
+  const continuePlan = mode === 'continue' ? plan : planSession(scoped, round, 'continue', 'all', planOpts)
+  const startUrl = studyUrl(deckId, mode, size, scopeTag)
 
   const onDelete = async () => {
     if (!confirm(`למחוק את "${deck.name}" ואת כל ${n(stats.total)} הכרטיסים שבה? אי אפשר לבטל.`)) return
@@ -97,7 +106,30 @@ export function DeckPage() {
 
   const continueDesc = continuePlan.startsNewRound
     ? `כל הכרטיסים נראו · סבב ${round + 1} יתחיל`
-    : `${n(stats.unseen)} כרטיסים שעוד לא נראו בסבב ${round}`
+    : scopeTag && scopedStats.unseen === 0
+      ? `כל כרטיסי הקטגוריה נראו בסבב ${round} · חזרה עליהם, החלשים קודם`
+      : `${n(scopedStats.unseen)} כרטיסים שעוד לא נראו בסבב ${round}`
+  const allDesc = scopeTag
+    ? `כל ${n(scopedStats.total)} כרטיסי הקטגוריה, החלשים קודם`
+    : `סבב חדש עכשיו · ${n(stats.total)} כרטיסים, החלשים קודם`
+
+  const categoryPicker = tags.length > 0 && (
+    <div className="stack" style={{ gap: 6 }}>
+      <span className="muted" style={{ fontSize: 13.5 }}>
+        קטגוריה
+      </span>
+      <div className="chip-row" role="group" aria-label="קטגוריה ללימוד">
+        <Chip active={scopeTag === null} onClick={() => setStudyTag(null)}>
+          כל החפיסה
+        </Chip>
+        {tags.map((t) => (
+          <Chip key={t} active={scopeTag === t} onClick={() => setStudyTag(t)}>
+            <bdi>{t}</bdi>
+          </Chip>
+        ))}
+      </div>
+    </div>
+  )
 
   const roundPanel = (
     <div className="panel panel--pad stack" style={{ gap: 10 }}>
@@ -220,19 +252,20 @@ export function DeckPage() {
 
             {stats.total > 0 && (
               <>
+                {categoryPicker}
                 <div className="mode-list" role="radiogroup" aria-label="מצב לימוד">
                   <ModeCard checked={mode === 'continue'} onSelect={() => setMode('continue')} title="המשך סבב" desc={continueDesc} />
                   <ModeCard
                     checked={mode === 'weak'}
                     onSelect={() => setMode('weak')}
                     title="רק חלשים"
-                    desc={`רמות שליטה 0–2 ו"שוב" אחרון · ${n(stats.weak)} כרטיסים`}
+                    desc={`רמות שליטה 0–2 ו"שוב" אחרון · ${n(scopedStats.weak)} כרטיסים`}
                   />
                   <ModeCard
                     checked={mode === 'all'}
                     onSelect={() => setMode('all')}
                     title="עבור על הכל"
-                    desc={`סבב חדש עכשיו · ${n(stats.total)} כרטיסים, החלשים קודם`}
+                    desc={allDesc}
                   />
                 </div>
 

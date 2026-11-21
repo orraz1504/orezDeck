@@ -17,6 +17,11 @@
  *   weak     — seen cards with mastery 0–2, or "שוב" last time.
  *   all      — starts a new round now; the whole deck, weakest first.
  *
+ *   partial  — the cards passed in are a subset of the deck (one category).
+ *              Rounds are deck-wide, so such a session never starts a new
+ *              round: "all" and a finished "continue" just go over the
+ *              subset, weakest first, within the current round.
+ *
  * IN-SESSION (rate)
  *   again → back in 3–5 cards, mastery = 0, lapses + 1
  *   hard  → back in ~10 cards, mastery unchanged
@@ -83,20 +88,32 @@ export interface SessionPlan {
   poolSize: number
 }
 
-export function planSession(cards: SchedCard[], roundNumber: number, mode: StudyMode, size: SessionSize): SessionPlan {
+export interface PlanOptions {
+  /** `cards` is only part of the deck (e.g. one category): never start a new round. */
+  partial?: boolean
+}
+
+export function planSession(
+  cards: SchedCard[],
+  roundNumber: number,
+  mode: StudyMode,
+  size: SessionSize,
+  { partial = false }: PlanOptions = {},
+): SessionPlan {
   let round = roundNumber
   let pool: SchedCard[]
+  const nextRound = partial ? roundNumber : roundNumber + 1
 
   if (mode === 'weak') {
     pool = cards.filter(isWeakCard)
   } else if (mode === 'all') {
-    round = roundNumber + 1
+    round = nextRound
     pool = cards
   } else {
     pool = cards.filter((c) => isUnseenInRound(c, round) || isAgainLast(c))
     // Round finished (only leftover "שוב" cards, or nothing) → start the next one.
     if (!cards.some((c) => isUnseenInRound(c, round)) && cards.length) {
-      round = roundNumber + 1
+      round = nextRound
       pool = cards
     }
   }

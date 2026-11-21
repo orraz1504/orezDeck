@@ -25,6 +25,8 @@ export interface SessionSummary {
   deckId: string
   mode: StudyMode
   size: SessionSize
+  /** Category (tag) the session was limited to, if any. */
+  tag: string | null
   cards: number
   ratings: Record<Rating, number>
   minutes: number
@@ -35,12 +37,12 @@ export interface SessionSummary {
   roundCompleted: boolean
 }
 
-function parseParams(params: URLSearchParams): { mode: StudyMode; size: SessionSize } {
+function parseParams(params: URLSearchParams): { mode: StudyMode; size: SessionSize; tag: string | null } {
   const m = params.get('mode')
   const mode: StudyMode = m === 'weak' || m === 'all' ? m : 'continue'
   const s = params.get('size')
   const size: SessionSize = s === 'all' ? 'all' : s === '20' || s === '100' ? (Number(s) as SessionSize) : 50
-  return { mode, size }
+  return { mode, size, tag: params.get('tag') || null }
 }
 
 /** Loads deck + cards, then mounts the session once (the queue is planned a single time). */
@@ -49,7 +51,7 @@ export function StudyPage() {
   const [params] = useSearchParams()
   const { deck, loading: deckLoading } = useDeck(deckId)
   const { cards, loading } = useCards(deckId)
-  const { mode, size } = parseParams(params)
+  const { mode, size, tag } = parseParams(params)
 
   if (loading || deckLoading) {
     return (
@@ -69,15 +71,21 @@ export function StudyPage() {
       </div>
     )
   }
-  return <Session key={`${deckId}:${mode}:${size}:${params.get('n') ?? ''}`} deck={deck} cards={cards} mode={mode} size={size} />
+  return (
+    <Session key={`${deckId}:${mode}:${size}:${tag ?? ''}:${params.get('n') ?? ''}`} deck={deck} cards={cards} mode={mode} size={size} tag={tag} />
+  )
 }
 
-function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode: StudyMode; size: SessionSize }) {
+function Session({ deck, cards, mode, size, tag }: { deck: Deck; cards: Card[]; mode: StudyMode; size: SessionSize; tag: string | null }) {
   const navigate = useNavigate()
   const deckId = deck.id
 
   // Plan once, from the cards as they were when the session started.
-  const [plan] = useState(() => planSession(cards, deck.roundNumber, mode, size))
+  const [plan] = useState(() =>
+    tag
+      ? planSession(cards.filter((c) => c.tags.includes(tag)), deck.roundNumber, mode, size, { partial: true })
+      : planSession(cards, deck.roundNumber, mode, size),
+  )
   const [session, setSession] = useState<SessionState>(() => startSession(plan.ids))
   const [revealed, setRevealed] = useState(false)
   /** Half-way through the flip animation (question turning away). */
@@ -131,6 +139,7 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
         deckId,
         mode,
         size,
+        tag,
         cards: final.done.length,
         ratings: final.ratings,
         minutes: Math.max(1, Math.round((Date.now() - startedAt) / 60000)),
@@ -140,7 +149,7 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
       }
       navigate(`/deck/${deckId}/done`, { replace: true, state: summary })
     },
-    [cards, plan.round, deck.lastRoundEndedAt, deckId, mode, size, startedAt, navigate],
+    [cards, plan.round, deck.lastRoundEndedAt, deckId, mode, size, tag, startedAt, navigate],
   )
 
   /** Animated flip: the visible face turns away, then the other side turns in. */
@@ -270,6 +279,12 @@ function Session({ deck, cards, mode, size }: { deck: Deck; cards: Card[]; mode:
         </Link>
         <div className="study__deck ellipsis">
           <bdi>{deck.name}</bdi>
+          {tag && (
+            <>
+              {' '}
+              · <bdi>{tag}</bdi>
+            </>
+          )}
           <span className="desktop-only" style={{ display: 'inline' }}>
             {' '}
             · {MODE_LABEL[mode]}

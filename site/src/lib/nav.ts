@@ -1,3 +1,4 @@
+import type { SessionSize, StudyMode } from './types'
 import type { NavigateFunction } from 'react-router-dom'
 
 /**
@@ -9,4 +10,11 @@ export function goBack(navigate: NavigateFunction, fallback: string) {
   const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0
   if (idx > 0) navigate(-1)
   else navigate(fallback, { replace: true })
+}
+
+/** Study URL for a deck; `tag` limits the session to one category. */
+export function studyUrl(deckId: string, mode: StudyMode, size: SessionSize, tag?: string | null): string {
+  const q = new URLSearchParams({ mode, size: String(size) })
+  if (tag) q.set('tag', tag)
+  return `/deck/${deckId}/study?${q}`
 }

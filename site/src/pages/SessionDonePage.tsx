@@ -4,6 +4,7 @@ import { useCards, useDeck } from '../data/store'
 import { n } from '../lib/format'
 import { deckStats } from '../lib/stats'
 import type { Rating } from '../lib/types'
+import { studyUrl } from '../lib/nav'
 import type { SessionSummary } from './StudyPage'
 
 const MODE_LABEL = { continue: 'המשך סבב', weak: 'רק חלשים', all: 'עבור על הכל' } as const
@@ -21,7 +22,7 @@ export function SessionDonePage() {
   const stats = deckStats(cards, summary.round)
   const totalRatings = ORDER.reduce((s, r) => s + summary.ratings[r], 0)
   const againSize = summary.size === 'all' ? '' : ` · ${summary.size}`
-  const again = `/deck/${deckId}/study?mode=${summary.mode}&size=${summary.size}`
+  const again = studyUrl(deckId, summary.mode, summary.size, summary.tag)
 
   return (
     <div className="study">
@@ -30,7 +31,14 @@ export function SessionDonePage() {
           <div className="stack" style={{ gap: 6 }}>
             <h1 className="page-title">הסשן הסתיים</h1>
             <div className="page-sub">
-              <bdi>{deck?.name}</bdi> · {MODE_LABEL[summary.mode]}
+              <bdi>{deck?.name}</bdi>
+              {summary.tag && (
+                <>
+                  {' '}
+                  · <bdi>{summary.tag}</bdi>
+                </>
+              )}{' '}
+              · {MODE_LABEL[summary.mode]}
             </div>
           </div>
 
