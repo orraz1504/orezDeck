@@ -67,11 +67,14 @@ const P_DISPLAY = '\u0001'
 const P_INLINE = '\u0002'
 const P_CLOZE = '\u0003'
 const P_DOLLAR = '\u0004'
+const P_RUN = '\u0005'
 
 interface Ctx {
   display: string[]
   inline: string[]
   clozes: { content: string; hint?: string; state: 'plain' | 'hidden' | 'revealed' }[]
+  /** Groups of neighbouring math pieces, shown together left-to-right. */
+  runs: string[]
   inlineOnly: boolean
 }
 
@@ -104,6 +107,7 @@ const INLINE_TOKEN = new RegExp(
     `${P_INLINE}\\d+${P_INLINE}`,
     `${P_DISPLAY}\\d+${P_DISPLAY}`,
     `${P_CLOZE}\\d+${P_CLOZE}`,
+    `${P_RUN}\\d+${P_RUN}`,
     P_DOLLAR,
     '\\*\\*[^*\\n]+?\\*\\*',
     '\\*[^*\\s][^*\\n]*?\\*',
@@ -122,7 +126,29 @@ function Math({ tex, display }: { tex: string; display: boolean }) {
   )
 }
 
-function inline(s: string, ctx: Ctx, keyBase: string): ReactNode[] {
+/**
+ * One equation is often split into pieces, e.g. "$m = $ {{c1::$10^{-3}$}}". Each piece
+ * is LTR-isolated on its own, so in a Hebrew line the pieces come out in reverse
+ * order ("10⁻³ m ="). Math pieces (and clozes that hold only math) separated by
+ * nothing but spaces or operators are grouped into one LTR run. Commas and words
+ * still split them, so a list like "a = 1, b = 2" keeps the line's RTL order.
+ */
+const MATH_PIECE = `(?:${P_INLINE}\\d+${P_INLINE}|${P_CLOZE}\\d+${P_CLOZE})`
+const MATH_RUN = new RegExp(`${MATH_PIECE}(?:[ \\t=+\\-−×·*/<>≤≥≈≠^]*${MATH_PIECE})+`, 'g')
+const MATH_ONLY = new RegExp(`^\\s*(?:${P_INLINE}\\d+${P_INLINE}\\s*)+$`)
+const CLOZE_TOKEN = new RegExp(`${P_CLOZE}(\\d+)${P_CLOZE}`, 'g')
+
+function groupMathRuns(s: string, ctx: Ctx): string {
+  return s.replace(MATH_RUN, (run) => {
+    const clozesAreMath = [...run.matchAll(CLOZE_TOKEN)].every((m) => MATH_ONLY.test(ctx.clozes[Number(m[1])].content))
+    if (!clozesAreMath) return run
+    ctx.runs.push(run)
+    return `${P_RUN}${ctx.runs.length - 1}${P_RUN}`
+  })
+}
+
+function inline(text: string, ctx: Ctx, keyBase: string, grouped = false): ReactNode[] {
+  const s = grouped ? text : groupMathRuns(text, ctx)
   const out: ReactNode[] = []
   let last = 0
   let k = 0
@@ -152,6 +178,12 @@ function inline(s: string, ctx: Ctx, keyBase: string): ReactNode[] {
       } else {
         out.push(<Fragment key={key}>{inline(c.content, ctx, key)}</Fragment>)
       }
+    } else if (ch === P_RUN) {
+      out.push(
+        <span key={key} dir="ltr" className="math-run">
+          {inline(ctx.runs[Number(tok.slice(1, -1))], ctx, key, true)}
+        </span>,
+      )
     } else if (ch === P_DOLLAR) {
       out.push('$')
     } else if (tok.startsWith('**')) {
@@ -273,7 +305,7 @@ function blocks(s: string, ctx: Ctx): ReactNode[] {
 function RichTextImpl({ text, cloze, inline: inlineOnly = false, className }: Props) {
   useKatexReady()
   if (!text) return null
-  const ctx: Ctx = { display: [], inline: [], clozes: [], inlineOnly }
+  const ctx: Ctx = { display: [], inline: [], clozes: [], runs: [], inlineOnly }
   const s = extract(text, cloze, ctx)
 
   if (inlineOnly) {

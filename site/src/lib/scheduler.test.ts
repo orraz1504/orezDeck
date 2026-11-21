@@ -9,6 +9,7 @@ import {
   orderPool,
   planSession,
   rateCurrent,
+  spreadSiblings,
   startSession,
   type SchedCard,
 } from './scheduler'
@@ -45,30 +46,58 @@ describe('interleave', () => {
   })
 })
 
+/** Deterministic pseudo-random sequence for shuffle tests. */
+function seeded(seed: number): () => number {
+  let x = seed
+  return () => {
+    x = (x * 1103515245 + 12345) % 2147483648
+    return x / 2147483648
+  }
+}
+
 describe('orderPool', () => {
-  it('orders: "again" last → seen by mastery / oldest, with new cards woven in', () => {
+  it('orders: "again" last → seen by mastery, with new cards woven in', () => {
     const again = seen({ id: 'again', mastery: 4, lastRating: 'again' })
-    const m1old = seen({ id: 'm1old', mastery: 1, lastSeen: 100 })
-    const m1new = seen({ id: 'm1new', mastery: 1, lastSeen: 900 })
+    const m1a = seen({ id: 'm1a', mastery: 1, lastSeen: 100 })
+    const m1b = seen({ id: 'm1b', mastery: 1, lastSeen: 900 })
     const m0 = seen({ id: 'm0', mastery: 0 })
     const m5 = seen({ id: 'm5', mastery: 5 })
     const new1 = card({ id: 'new1' })
     const new2 = card({ id: 'new2' })
-    expect(ids(orderPool([m5, new2, m1new, again, new1, m1old, m0]))).toEqual([
-      'again',
-      'm0',
-      'm1old',
-      'm1new',
-      'new1',
-      'm5',
-      'new2',
-    ])
+    for (let seed = 1; seed <= 20; seed++) {
+      const order = ids(orderPool([m5, new2, m1b, again, new1, m1a, m0], seeded(seed)))
+      expect(order.slice(0, 2)).toEqual(['again', 'm0'])
+      expect(order.slice(2, 4).sort()).toEqual(['m1a', 'm1b'])
+      expect(order[5]).toBe('m5')
+      expect([order[4], order[6]].sort()).toEqual(['new1', 'new2'])
+    }
   })
-  it('keeps never-seen cards in the order they were added', () => {
-    const a = card({ id: 'a', createdAt: 1 })
-    const b = card({ id: 'b', createdAt: 2 })
-    const c = card({ id: 'c', createdAt: 3 })
-    expect(ids(orderPool([c, a, b]))).toEqual(['a', 'b', 'c'])
+
+  it('shuffles: the order changes between sessions', () => {
+    const cards = Array.from({ length: 10 }, (_, i) => card({ id: `n${i}` }))
+    const orders = new Set([1, 2, 3, 4, 5].map((seed) => ids(orderPool(cards, seeded(seed))).join()))
+    expect(orders.size).toBeGreaterThan(1)
+  })
+
+  it('keeps cards of the same note apart', () => {
+    const cards = [
+      ...['a1', 'a2', 'a3'].map((id) => card({ id, noteId: 'A' })),
+      ...['b1', 'b2', 'b3'].map((id) => card({ id, noteId: 'B' })),
+      card({ id: 'x' }),
+    ]
+    for (let seed = 1; seed <= 20; seed++) {
+      const order = orderPool(cards, seeded(seed))
+      for (let i = 1; i < order.length; i++) {
+        if (order[i].noteId) expect(order[i].noteId).not.toBe(order[i - 1].noteId)
+      }
+    }
+  })
+})
+
+describe('spreadSiblings', () => {
+  it('leaves siblings together only when nothing else is left', () => {
+    const n = (id: string, noteId?: string) => ({ id, noteId })
+    expect(ids(spreadSiblings([n('a1', 'A'), n('a2', 'A'), n('x'), n('a3', 'A'), n('a4', 'A')]))).toEqual(['a1', 'x', 'a2', 'a3', 'a4'])
   })
 })
 

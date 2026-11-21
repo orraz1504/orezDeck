@@ -9,8 +9,10 @@
  *   1. Cards whose last answer was "שוב" (incl. problem cards rated "שוב" and
  *      cards left mid-session) — they always get priority.
  *   2. The rest, interleaving ~1 never-seen card after every 3 seen ones.
- *      Seen cards: lowest mastery first, then least recently seen.
- *      Never-seen cards: in the order they were added.
+ *      Seen cards: lowest mastery first; random order within a mastery level.
+ *      Never-seen cards: random order.
+ *   Shuffled anew every session, then cards of the same note (clozes of one
+ *   text, masks of one image) are spread apart so they don't give each other away.
  *
  *   continue — cards not yet seen in the current round (+ "שוב"-last cards).
  *              When nothing is left, a new round starts.
@@ -39,7 +41,7 @@ export const NEW_EVERY = 4 // one new card per 4 slots → 3 reviews : 1 new
 export const AGAIN_GAP: [number, number] = [3, 5]
 export const HARD_GAP: [number, number] = [9, 11]
 
-export type SchedCard = Pick<Card, 'id' | 'type' | 'createdAt'> & CardProgress
+export type SchedCard = Pick<Card, 'id' | 'type' | 'createdAt' | 'noteId'> & CardProgress
 
 /* ───────────────────────── Pool selection & ordering ───────────────────────── */
 
@@ -48,12 +50,49 @@ export const isAgainLast = (c: SchedCard) => c.lastRating === 'again'
 export const isUnseenInRound = (c: SchedCard, round: number) => c.seenInRound < round
 export const isWeakCard = (c: SchedCard) => !isNew(c) && (c.mastery <= WEAK_MAX_MASTERY || isAgainLast(c))
 
-/** Lowest mastery first, then least recently seen. */
-function byWeakness(a: SchedCard, b: SchedCard): number {
-  return a.mastery - b.mastery || (a.lastSeen ?? 0) - (b.lastSeen ?? 0) || a.createdAt - b.createdAt
+/** Fisher–Yates; returns a new array. */
+export function shuffle<T>(items: T[], rand: () => number = Math.random): T[] {
+  const out = [...items]
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(rand() * (i + 1))
+    ;[out[i], out[j]] = [out[j], out[i]]
+  }
+  return out
 }
 
-const byCreated = (a: SchedCard, b: SchedCard) => a.createdAt - b.createdAt
+/** Lowest mastery first; random within a level (stable sort over a shuffled list). */
+function weakestFirst(cards: SchedCard[], rand: () => number): SchedCard[] {
+  return shuffle(cards, rand).sort((a, b) => a.mastery - b.mastery)
+}
+
+/**
+ * Reorders so no card directly follows a card of the same note, when possible.
+ * Greedy: take the first remaining card from a different note than the last one,
+ * except when one note has so many cards left that it must go now to stay spreadable.
+ * Otherwise the given order is kept.
+ */
+export function spreadSiblings<T extends Pick<SchedCard, 'noteId'>>(cards: T[]): T[] {
+  if (!cards.some((c) => c.noteId)) return cards
+  const rest = [...cards]
+  const out: T[] = []
+  const counts = new Map<string, number>()
+  for (const c of rest) if (c.noteId) counts.set(c.noteId, (counts.get(c.noteId) ?? 0) + 1)
+  // Counts only go down, so no note can be "forced" until few cards are left.
+  const maxCount = Math.max(...counts.values())
+  while (rest.length) {
+    const last = out.length ? out[out.length - 1].noteId : undefined
+    let forced: string | undefined
+    if (maxCount * 2 > rest.length) {
+      for (const [note, count] of counts) if (note !== last && count * 2 > rest.length) forced = note
+    }
+    let i = forced ? rest.findIndex((c) => c.noteId === forced) : rest.findIndex((c) => !c.noteId || c.noteId !== last)
+    if (i === -1) i = 0
+    const [picked] = rest.splice(i, 1)
+    if (picked.noteId) counts.set(picked.noteId, counts.get(picked.noteId)! - 1)
+    out.push(picked)
+  }
+  return out
+}
 
 /** Weave `fresh` into `reviews`: after every (every-1) reviews, one fresh card. */
 export function interleave<T>(reviews: T[], fresh: T[], every = NEW_EVERY): T[] {
@@ -69,12 +108,12 @@ export function interleave<T>(reviews: T[], fresh: T[], every = NEW_EVERY): T[] 
 }
 
 /** Priority order for a pool of cards (see header). */
-export function orderPool(pool: SchedCard[]): SchedCard[] {
-  const again = pool.filter(isAgainLast).sort(byWeakness)
+export function orderPool(pool: SchedCard[], rand: () => number = Math.random): SchedCard[] {
+  const again = weakestFirst(pool.filter(isAgainLast), rand)
   const rest = pool.filter((c) => !isAgainLast(c))
-  const seen = rest.filter((c) => !isNew(c)).sort(byWeakness)
-  const fresh = rest.filter(isNew).sort(byCreated)
-  return [...again, ...interleave(seen, fresh)]
+  const seen = weakestFirst(rest.filter((c) => !isNew(c)), rand)
+  const fresh = shuffle(rest.filter(isNew), rand)
+  return spreadSiblings([...again, ...interleave(seen, fresh)])
 }
 
 export interface SessionPlan {
@@ -91,6 +130,8 @@ export interface SessionPlan {
 export interface PlanOptions {
   /** `cards` is only part of the deck (e.g. one category): never start a new round. */
   partial?: boolean
+  /** Randomness for the order; injectable for tests. */
+  rand?: () => number
 }
 
 export function planSession(
@@ -98,7 +139,7 @@ export function planSession(
   roundNumber: number,
   mode: StudyMode,
   size: SessionSize,
-  { partial = false }: PlanOptions = {},
+  { partial = false, rand = Math.random }: PlanOptions = {},
 ): SessionPlan {
   let round = roundNumber
   let pool: SchedCard[]
@@ -118,7 +159,7 @@ export function planSession(
     }
   }
 
-  const ordered = orderPool(pool)
+  const ordered = orderPool(pool, rand)
   const take = size === 'all' ? ordered.length : Math.min(size, ordered.length)
   return {
     ids: ordered.slice(0, take).map((c) => c.id),

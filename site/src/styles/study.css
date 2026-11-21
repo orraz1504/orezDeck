@@ -74,6 +74,12 @@
   white-space: nowrap;
 }
 
+/* Several math pieces of one equation (see groupMathRuns), kept in LTR order. */
+.math-run {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
 .math-block {
   display: block;
   text-align: center;

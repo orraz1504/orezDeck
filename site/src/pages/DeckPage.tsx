@@ -57,6 +57,14 @@ export function DeckPage() {
   const scoped = useMemo(() => (scopeTag ? cards.filter((c) => c.tags.includes(scopeTag)) : cards), [cards, scopeTag])
   const scopedStats = useMemo(() => (scopeTag ? deckStats(scoped, round) : stats), [scopeTag, scoped, round, stats])
 
+  // Only the counts are used here (the order is shuffled again when the session starts).
+  const plan = useMemo(() => planSession(scoped, round, mode, size, { partial: scopeTag !== null }), [scoped, round, mode, size, scopeTag])
+  const continuePlan = useMemo(
+    () => (mode === 'continue' ? plan : planSession(scoped, round, 'continue', 'all', { partial: scopeTag !== null })),
+    [mode, plan, scoped, round, scopeTag],
+  )
+  const sessionCount = plan.ids.length
+
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase()
     return cards.filter((c) => {
@@ -79,10 +87,6 @@ export function DeckPage() {
     )
   }
 
-  const planOpts = { partial: scopeTag !== null }
-  const plan = planSession(scoped, round, mode, size, planOpts)
-  const sessionCount = plan.ids.length
-  const continuePlan = mode === 'continue' ? plan : planSession(scoped, round, 'continue', 'all', planOpts)
   const startUrl = studyUrl(deckId, mode, size, scopeTag)
 
   const onDelete = async () => {
