@@ -44,8 +44,6 @@ export function DeckPage() {
   const [size, setSize] = useState<SessionSize>(50)
   const [query, setQuery] = useState('')
   const [tag, setTag] = useState<string | null>(null)
-  /** Category (tag) the next session is limited to; null = whole deck. */
-  const [studyTag, setStudyTag] = useState<string | null>(null)
   const [limit, setLimit] = useState(PAGE)
   const [editing, setEditing] = useState(false)
 
@@ -53,8 +51,9 @@ export function DeckPage() {
   const stats = useMemo(() => deckStats(cards, round), [cards, round])
   const tags = useMemo(() => [...new Set(cards.flatMap((c) => c.tags))].sort((a, b) => a.localeCompare(b, 'he')), [cards])
 
-  // Ignore a picked category that no longer exists (its last card was deleted or retagged).
-  const scopeTag = studyTag && tags.includes(studyTag) ? studyTag : null
+  // The tag picked in the card list also limits the next session to that category.
+  // Ignore it once it no longer exists (its last card was deleted or retagged).
+  const scopeTag = tag && tag !== '__leech' && tags.includes(tag) ? tag : null
   const scoped = useMemo(() => (scopeTag ? cards.filter((c) => c.tags.includes(scopeTag)) : cards), [cards, scopeTag])
   const scopedStats = useMemo(() => (scopeTag ? deckStats(scoped, round) : stats), [scopeTag, scoped, round, stats])
 
@@ -113,21 +112,15 @@ export function DeckPage() {
     ? `כל ${n(scopedStats.total)} כרטיסי הקטגוריה, החלשים קודם`
     : `סבב חדש עכשיו · ${n(stats.total)} כרטיסים, החלשים קודם`
 
-  const categoryPicker = tags.length > 0 && (
-    <div className="stack" style={{ gap: 6 }}>
-      <span className="muted" style={{ fontSize: 13.5 }}>
-        קטגוריה
+  // Shown only while a category is picked, since the chips are down by the card list.
+  const categoryNote = scopeTag && (
+    <div className="row" style={{ gap: 8, fontSize: 13.5 }}>
+      <span className="muted">
+        לומדים רק את הקטגוריה <bdi style={{ fontWeight: 600, color: 'var(--ink)' }}>{scopeTag}</bdi>
       </span>
-      <div className="chip-row" role="group" aria-label="קטגוריה ללימוד">
-        <Chip active={scopeTag === null} onClick={() => setStudyTag(null)}>
-          כל החפיסה
-        </Chip>
-        {tags.map((t) => (
-          <Chip key={t} active={scopeTag === t} onClick={() => setStudyTag(t)}>
-            <bdi>{t}</bdi>
-          </Chip>
-        ))}
-      </div>
+      <button type="button" className="link-btn" style={{ color: 'var(--accent)' }} onClick={() => setTag(null)}>
+        כל החפיסה
+      </button>
     </div>
   )
 
@@ -252,7 +245,7 @@ export function DeckPage() {
 
             {stats.total > 0 && (
               <>
-                {categoryPicker}
+                {categoryNote}
                 <div className="mode-list" role="radiogroup" aria-label="מצב לימוד">
                   <ModeCard checked={mode === 'continue'} onSelect={() => setMode('continue')} title="המשך סבב" desc={continueDesc} />
                   <ModeCard
