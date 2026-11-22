@@ -11,6 +11,7 @@ import {
   planSession,
   plannedLeft,
   rateCurrent,
+  slowThreshold,
   startSession,
   type SchedCard,
   type SessionPlan,
@@ -93,7 +94,7 @@ describe('planSession — pools', () => {
     const done = seen({ id: 'done', seenInRound: 2 })
     const todo = seen({ id: 'todo', seenInRound: 1 })
     const fresh = card({ id: 'fresh' })
-    const p = plan([done, todo, fresh], 2)
+    const p = plan([done, todo, fresh], 2, 'continue', 'all')
     expect(p.ids).toEqual(['todo', 'fresh'])
     expect(p.round).toBe(2)
     expect(p.startsNewRound).toBe(false)
@@ -105,8 +106,18 @@ describe('planSession — pools', () => {
     expect(first.ids).toHaveLength(20)
     const after = cards.map((c) => (first.ids.includes(c.id) ? { ...c, seenInRound: 1, lastSeen: NOW - HOUR, lastRating: 'good' as const } : c))
     const second = plan(after, 1, 'continue', 20)
-    expect(second.ids).toHaveLength(10)
-    expect(second.ids.every((id) => !first.ids.includes(id))).toBe(true)
+    // The 10 cards left in the round come first; the session is topped up with this round's seen cards.
+    expect(second.ids).toHaveLength(20)
+    expect(second.ids.slice(0, 10).every((id) => !first.ids.includes(id))).toBe(true)
+    expect(second.ids.slice(10).every((id) => first.ids.includes(id))).toBe(true)
+    expect(second.startsNewRound).toBe(false)
+  })
+
+  it('continue: the top-up is weakest first, and only for a numeric session size', () => {
+    const cards = [seen({ id: 'left', seenInRound: 0 }), seen({ id: 'strong', seenInRound: 1, mastery: 5 }), seen({ id: 'weak', seenInRound: 1, mastery: 1 })]
+    expect(plan(cards, 1, 'continue', 20).ids).toEqual(['left', 'weak', 'strong'])
+    expect(plan(cards, 1, 'continue', 'all').ids).toEqual(['left'])
+    expect(plan(cards, 1, 'continue', 20, { partial: true }).ids).toEqual(['left', 'weak', 'strong'])
   })
 
   it('continue: starts a new round when every card was seen', () => {
@@ -148,7 +159,7 @@ describe('planSession — pools', () => {
       seen({ id: 'm3', mastery: 3 }),
       seen({ id: 'm5again', mastery: 5, lastRating: 'again' }),
       seen({ id: 'm4hard', mastery: 4, lastRating: 'hard' }),
-      seen({ id: 'm4old', mastery: 4, lastSeen: NOW - 14 * DAY }), // decayed to 2
+      seen({ id: 'm4old', mastery: 4, lastSeen: NOW - 28 * DAY }), // decayed to 2
       card({ id: 'new' }),
     ]
     const p = plan(cards, 1, 'weak', 'all')
@@ -160,7 +171,7 @@ describe('planSession — pools', () => {
   it('isWeakCard uses decay', () => {
     expect(isWeakCard(card(), NOW)).toBe(false)
     expect(isWeakCard(seen({ mastery: 3 }), NOW)).toBe(false)
-    expect(isWeakCard(seen({ mastery: 3, lastSeen: NOW - 8 * DAY }), NOW)).toBe(true)
+    expect(isWeakCard(seen({ mastery: 3, lastSeen: NOW - 8 * DAY }), NOW)).toBe(true) // 3 − 8/7
   })
 })
 
@@ -170,7 +181,7 @@ describe('planSession — order', () => {
       seen({ id: 'again', mastery: 4, lastRating: 'again' }),
       seen({ id: 'm0', mastery: 0 }),
       seen({ id: 'm1', mastery: 1 }),
-      seen({ id: 'm5stale', mastery: 5, lastSeen: NOW - 42 * DAY }), // effective 2
+      seen({ id: 'm5stale', mastery: 5, lastSeen: NOW - 90 * DAY }), // effective 2
       seen({ id: 'm5', mastery: 5 }),
       card({ id: 'new1' }),
       card({ id: 'new2' }),
@@ -249,9 +260,9 @@ describe('planSession — order', () => {
   })
 
   it('exam: plans enough never-seen cards to cover the deck 2 days before', () => {
-    const fresh = Array.from({ length: 100 }, (_, i) => card({ id: `n${i}` }))
+    const fresh = Array.from({ length: 200 }, (_, i) => card({ id: `n${i}` }))
     const old = Array.from({ length: 100 }, (_, i) => seen({ id: `s${i}`, seenInRound: 0 }))
-    // 6 days left → 100 / 4 = 25 new a day, of a 50-card session → 1:2.
+    // 6 days left → 200 / 4 = 50 new a day = 25 a session (2 a day), of a 50-card session → 1:2.
     const p = plan([...fresh, ...old], 1, 'continue', 50, { examDate: '2026-06-07' })
     expect(p.phase).toBe('coverage')
     expect(p.newShare).toBeCloseTo(0.5)
@@ -333,20 +344,20 @@ describe('session — repeat timing', () => {
   const deck = (k: number) => Array.from({ length: k }, (_, i) => card({ id: `c${i}` }))
   const backAt = (run: Run) => run.shown.findIndex((x, i) => i > 0 && x.id === run.shown[0].id)
 
-  it('"שוב" comes back after 3–5 cards AND at least 60 s', () => {
-    const cards = deck(30)
+  it('"שוב" comes back after 3–5 cards AND at least 3 minutes', () => {
+    const cards = deck(40)
     // 10 s a card: 3–5 cards is only 30–50 s, so the clock decides.
     const fast = runSession(plan(cards, 1, 'continue', 'all'), cards, (_, i) => (i === 0 ? 'again' : 'good'), 10_000)
     expect(fast.shown[backAt(fast)].kind).toBe('repeat')
     expect(fast.shown[backAt(fast)].at - fast.shown[0].at).toBeGreaterThanOrEqual(STUDY.againMinMs)
-    // 30 s a card: the card count decides (3–5 other cards in between).
-    const slow = runSession(plan(cards, 1, 'continue', 'all'), cards, (_, i) => (i === 0 ? 'again' : 'good'), 30_000)
+    // 60 s a card: the card count decides (3–5 other cards in between).
+    const slow = runSession(plan(cards, 1, 'continue', 'all'), cards, (_, i) => (i === 0 ? 'again' : 'good'), 60_000)
     expect(backAt(slow)).toBeGreaterThanOrEqual(4)
     expect(backAt(slow)).toBeLessThanOrEqual(6)
   })
 
-  it('"קשה" comes back after ~10 cards AND at least 3 minutes', () => {
-    const cards = deck(40)
+  it('"קשה" comes back after ~10 cards AND at least 8 minutes', () => {
+    const cards = deck(80)
     const run = runSession(plan(cards, 1, 'continue', 'all'), cards, (_, i) => (i === 0 ? 'hard' : 'good'), 10_000)
     expect(run.shown[backAt(run)].at - run.shown[0].at).toBeGreaterThanOrEqual(STUDY.hardMinMs)
     expect(backAt(run)).toBeGreaterThanOrEqual(10)
@@ -435,6 +446,21 @@ describe('applyRating', () => {
     expect(isSlowGood('good', { ...slow, cardType: 'problem' })).toBe(false)
     expect(isSlowGood('good', { ...slow, cardType: 'image' })).toBe(false)
     expect(isSlowGood('easy', slow)).toBe(false)
+  })
+
+  it('slow means longer for long cards and for cards that took long before (≤ 60 s)', () => {
+    expect(slowThreshold(0)).toBe(20_000)
+    expect(slowThreshold(80)).toBe(20_000)
+    expect(slowThreshold(280)).toBe(20_000 + 200 * 60)
+    expect(slowThreshold(10_000)).toBe(60_000)
+    expect(slowThreshold(0, 30_000)).toBe(45_000)
+    const opts = { answerMs: 25_000, slowGoodAsHard: true, cardType: 'cloze' as const }
+    expect(isSlowGood('good', { ...opts, textLength: 300 })).toBe(false)
+    expect(isSlowGood('good', { ...opts, previousMs: 20_000 })).toBe(false)
+  })
+
+  it('the closing showing: "שוב" halves mastery but is not a lapse', () => {
+    expect(applyRating({ ...base, lapsesSinceEdit: 2 }, 'again', 1, 1, { countLapse: false })).toMatchObject({ mastery: 1, lapses: 1, lapsesSinceEdit: 2 })
   })
 
   it('stores the answer time, capped', () => {

@@ -60,16 +60,17 @@ export function DeckPage() {
 
   // Only the counts are used here (the order is shuffled again when the session starts).
   const examDate = deck?.examDate ?? null
+  const examTime = deck?.examTime ?? null
   const plan = useMemo(
-    () => planSession(scoped, round, mode, size, { partial: scopeTag !== null, examDate }),
-    [scoped, round, mode, size, scopeTag, examDate],
+    () => planSession(scoped, round, mode, size, { partial: scopeTag !== null, examDate, examTime }),
+    [scoped, round, mode, size, scopeTag, examDate, examTime],
   )
   const continuePlan = useMemo(
-    () => (mode === 'continue' ? plan : planSession(scoped, round, 'continue', 'all', { partial: scopeTag !== null, examDate })),
-    [mode, plan, scoped, round, scopeTag, examDate],
+    () => (mode === 'continue' ? plan : planSession(scoped, round, 'continue', 'all', { partial: scopeTag !== null, examDate, examTime })),
+    [mode, plan, scoped, round, scopeTag, examDate, examTime],
   )
   const [openedAt] = useState(() => Date.now())
-  const perDay = perDayToFinishRound(stats.unseen, examInfo(examDate, openedAt))
+  const perDay = perDayToFinishRound(stats.unseen, examInfo(examDate, openedAt, examTime))
   const sessionCount = plan.ids.length
 
   const filtered = useMemo(() => {

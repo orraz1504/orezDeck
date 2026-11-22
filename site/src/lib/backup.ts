@@ -126,7 +126,7 @@ export function cleanImage(raw: unknown): Omit<StoredImage, 'id'> | null {
 }
 
 export interface ParsedBackup {
-  decks: { name: string; examDate: string | null; examLabel: string | null; roundNumber: number; lastRoundEndedAt: number | null; cards: Omit<Card, 'id'>[] }[]
+  decks: { name: string; examDate: string | null; examTime: string | null; examLabel: string | null; roundNumber: number; lastRoundEndedAt: number | null; cards: Omit<Card, 'id'>[] }[]
   images: Record<string, Omit<StoredImage, 'id'>>
   skippedCards: number
   skippedImages: number
@@ -159,9 +159,11 @@ export function parseBackup(text: string): ParsedBackup {
       else skippedCards++
     }
     const examDate = typeof d.examDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(d.examDate) ? d.examDate : null
+    const examTime = typeof d.examTime === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(d.examTime) ? d.examTime : null
     decks.push({
       name,
       examDate,
+      examTime,
       examLabel: str(d.examLabel, 60) ?? null,
       roundNumber: int(d.roundNumber, 1, 100_000) ?? 1,
       lastRoundEndedAt: time(d.lastRoundEndedAt) ?? null,

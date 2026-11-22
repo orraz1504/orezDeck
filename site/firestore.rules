@@ -16,7 +16,7 @@ service cloud.firestore {
     }
 
     // ===== Helpers =====
-    function str(v, max) { return v is string && v.size() <= max; }
+    function str(v, max) { return v is string && v.size() <= max; } 
     function optStr(d, k, max) { return !(k in d) || str(d[k], max); }
     // Client time in ms. Not "== request.time": ratings made offline sync later,
     // so we only require a sane value that isn't in the future (10 min clock skew).
@@ -31,11 +31,13 @@ service cloud.firestore {
     }
 
     function validDeck(d) {
-      return d.keys().hasOnly(['name', 'examDate', 'examLabel', 'createdAt', 'roundNumber', 'lastRoundEndedAt', 'stats'])
+      return d.keys().hasOnly(['name', 'examDate', 'examTime', 'examLabel', 'createdAt', 'roundNumber', 'lastRoundEndedAt', 'stats'])
         && d.keys().hasAll(['name', 'createdAt', 'roundNumber'])
         && str(d.name, 200) && d.name.size() > 0
         && (!('examDate' in d) || d.examDate == null
             || (d.examDate is string && d.examDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')))
+        && (!('examTime' in d) || d.examTime == null
+            || (d.examTime is string && d.examTime.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')))
         && (!('examLabel' in d) || d.examLabel == null || str(d.examLabel, 60))
         && isTime(d.createdAt)
         && d.roundNumber is int && d.roundNumber >= 1 && d.roundNumber <= 100000

@@ -235,7 +235,7 @@ export function useDeck(deckId: string | undefined) {
   return { deck: decks.find((d) => d.id === deckId) ?? null, loading, error }
 }
 
-export async function createDeck(data: Pick<Deck, 'name' | 'examDate' | 'examLabel'>): Promise<string> {
+export async function createDeck(data: Pick<Deck, 'name' | 'examDate' | 'examLabel'> & Partial<Pick<Deck, 'examTime'>>): Promise<string> {
   const ref = doc(decksCol())
   const deck: Omit<Deck, 'id'> = {
     ...data,

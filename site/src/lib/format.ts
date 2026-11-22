@@ -34,10 +34,11 @@ export function relativeDays(days: number): string {
 }
 
 /** "מבחן 14.01.2027 · בעוד 65 ימים" */
-export function examSummary(deck: Pick<Deck, 'examDate' | 'examLabel'>): string {
+export function examSummary(deck: Pick<Deck, 'examDate' | 'examLabel'> & Partial<Pick<Deck, 'examTime'>>): string {
   if (!deck.examDate) return 'ללא תאריך מבחן'
   const label = deck.examLabel ? `מבחן ${deck.examLabel}` : 'מבחן'
-  return `${label} ${formatDate(deck.examDate)} · ${relativeDays(daysUntil(deck.examDate))}`
+  const at = deck.examTime ? ` ${deck.examTime}` : ''
+  return `${label} ${formatDate(deck.examDate)}${at} · ${relativeDays(daysUntil(deck.examDate))}`
 }
 
 export function initials(name: string | null | undefined): string {

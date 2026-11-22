@@ -18,9 +18,10 @@ export const STUDY = {
 
   /* Repeats inside a session: back after N other cards AND at least this long, whichever is later. */
   againGapCards: [3, 5] as [number, number],
-  againMinMs: 60 * SEC,
+  /** Long enough that the answer has left short-term memory. */
+  againMinMs: 3 * MIN,
   hardGapCards: [9, 11] as [number, number],
-  hardMinMs: 3 * MIN,
+  hardMinMs: 8 * MIN,
   /** "קשה" on a card at this stored mastery or higher doesn't come back in the session. */
   hardLeavesFromMastery: 3,
   /** At most this many repeats in a row while planned cards are still waiting. */
@@ -30,11 +31,11 @@ export const STUDY = {
   recentlySeenMs: 30 * MIN,
 
   /* Decay: effective = mastery − daysSinceLastSeen / decayDays[mastery] (level 0 doesn't decay). */
-  decayDays: { 1: 1, 2: 2, 3: 4, 4: 7, 5: 14 } as Record<number, number>,
+  decayDays: { 1: 2, 2: 4, 3: 7, 4: 14, 5: 30 } as Record<number, number>,
   /** "Fading" in the stats: effective at least this much below the stored mastery. */
   fadingDrop: 1,
 
-  /* Exam date (deck.examDate is a calendar day; the exam is assumed at this local hour). */
+  /* Exam date (deck.examDate is a calendar day; deck.examTime "HH:MM" is optional, else this local hour). */
   examHour: 9,
   /** More than this many days before the exam: normal behaviour. */
   coverageFromDays: 7,
@@ -47,6 +48,8 @@ export const STUDY = {
 
   /* Share of never-seen cards among the planned ones ("1:4" = one in four). */
   newShareDefault: 1 / 4,
+  /** With an exam date, the day's never-seen quota is split over this many sessions. */
+  sessionsPerDay: 2,
   newShareMin: 1 / 8,
   newShareMax: 1,
   /** In-session adjustment over the last N answers. */
@@ -60,11 +63,23 @@ export const STUDY = {
   /* Leeches */
   /** Leech = this many "שוב" since the card was last edited. */
   leechLapses: 3,
-  /** At most this share of a session's planned cards are leeches (unless nothing else is left). */
+  /** At most this share of a session's planned cards are leeches. */
   leechSessionShare: 0.2,
+  /**
+   * When only leeches are left: false = fill the session anyway (the chosen size wins),
+   * true = end the session short (the 20% cap wins).
+   */
+  leechCapStrict: false,
 
   /* Response time (setting, on by default): a slow "טוב" counts as "קשה" for mastery. */
   slowGoodMs: 20 * SEC,
+  /** Long cards get more time: + this much per character beyond slowGoodFreeChars… */
+  slowGoodMsPerChar: 60,
+  slowGoodFreeChars: 80,
+  /** …and at least this multiple of the card's own previous answer time… */
+  slowGoodVsPrevious: 1.5,
+  /** …but never more than this. */
+  slowGoodMaxMs: 60 * SEC,
   /** Stored answer times are capped (and validated by firestore.rules) at this. */
   maxAnswerMs: HOUR,
 

@@ -17,15 +17,16 @@ export interface ExamInfo {
   msLeft: number | null
 }
 
-/** Exam time from a YYYY-MM-DD deck date, at STUDY.examHour local time. */
-export function examTime(examDate: string | null | undefined): number | null {
+/** Exam time from a YYYY-MM-DD deck date and an optional "HH:MM" (default STUDY.examHour), local time. */
+export function examTime(examDate: string | null | undefined, time?: string | null): number | null {
   if (!examDate || !/^\d{4}-\d{2}-\d{2}$/.test(examDate)) return null
   const [y, m, d] = examDate.split('-').map(Number)
-  return new Date(y, m - 1, d, STUDY.examHour).getTime()
+  const hm = time && /^([01]\d|2[0-3]):[0-5]\d$/.test(time) ? time.split(':').map(Number) : [STUDY.examHour, 0]
+  return new Date(y, m - 1, d, hm[0], hm[1]).getTime()
 }
 
-export function examInfo(examDate: string | null | undefined, now: number): ExamInfo {
-  const at = examTime(examDate)
+export function examInfo(examDate: string | null | undefined, now: number, time?: string | null): ExamInfo {
+  const at = examTime(examDate, time)
   if (at === null || at <= now) return { phase: 'none', msLeft: at === null ? null : at - now }
   const msLeft = at - now
   if (msLeft <= STUDY.refreshHours * 3600_000) return { phase: 'refresh', msLeft }
@@ -65,13 +66,13 @@ const clampShare = (s: number) => Math.min(STUDY.newShareMax, Math.max(STUDY.new
 /**
  * Base share of never-seen cards for a session of `sessionSize` planned cards.
  * With an exam ahead: spread the never-seen cards so all are seen
- * STUDY.coverageBufferDays before it (one session a day assumed).
+ * STUDY.coverageBufferDays before it, over STUDY.sessionsPerDay sessions a day.
  */
 export function baseNewShare(neverSeen: number, sessionSize: number, exam: ExamInfo): number {
   if (exam.phase === 'none' || exam.msLeft === null || sessionSize <= 0) return STUDY.newShareDefault
   const days = Math.ceil(exam.msLeft / DAY)
-  const perDay = neverSeen / Math.max(1, days - STUDY.coverageBufferDays)
-  return clampShare(perDay / sessionSize)
+  const perSession = neverSeen / Math.max(1, days - STUDY.coverageBufferDays) / STUDY.sessionsPerDay
+  return clampShare(perSession / sessionSize)
 }
 
 /** In-session adjustment from the most recent answers. */

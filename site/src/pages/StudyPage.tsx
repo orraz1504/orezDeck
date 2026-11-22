@@ -82,6 +82,11 @@ function clearParked() {
   }
 }
 
+/** Rough length of what has to be read before answering (for the slow-answer threshold). */
+function questionLength(c: Card): number {
+  return (c.type === 'cloze' ? (c.text ?? '') : (c.front ?? c.prompt ?? '')).length
+}
+
 function parseParams(params: URLSearchParams): { mode: StudyMode; size: SessionSize; tag: string | null } {
   const m = params.get('mode')
   const mode: StudyMode = m === 'weak' || m === 'all' ? m : 'continue'
@@ -176,6 +181,7 @@ function Session({
       planSession(tag ? cards.filter((c) => c.tags.includes(tag)) : cards, deck.roundNumber, mode, size, {
         partial: !!tag,
         examDate: deck.examDate,
+        examTime: deck.examTime,
       }),
   )
   const [session, setSession] = useState<SessionState>(() => parked?.session ?? nextCard(startSession(plan), info, Date.now()))
@@ -317,7 +323,14 @@ function Session({
       // Before saving the new progress: the scheduler needs the mastery the card was shown with.
       const next = rateCurrent(session, r, info, now)
       if (prev.seenInRound < plan.round) newlySeen.current++
-      const progress = applyRating(prev, r, plan.round, now, { answerMs: answerMs.current, slowGoodAsHard, cardType: current.type })
+      const progress = applyRating(prev, r, plan.round, now, {
+        answerMs: answerMs.current,
+        slowGoodAsHard,
+        cardType: current.type,
+        textLength: questionLength(current),
+        previousMs: prev.lastAnswerMs,
+        countLapse: session.current?.kind !== 'final',
+      })
       written.current.set(current.id, progress)
 
       const patch: Partial<Card> = { ...progress }

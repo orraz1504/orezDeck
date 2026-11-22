@@ -9,6 +9,7 @@ export function DeckFormSheet({ deck, onClose }: { deck?: Deck; onClose: () => v
   const navigate = useNavigate()
   const [name, setName] = useState(deck?.name ?? '')
   const [examDate, setExamDate] = useState(deck?.examDate ?? '')
+  const [examTime, setExamTime] = useState(deck?.examTime ?? '')
   const [examLabel, setExamLabel] = useState(deck?.examLabel ?? '')
   const [busy, setBusy] = useState(false)
 
@@ -16,7 +17,7 @@ export function DeckFormSheet({ deck, onClose }: { deck?: Deck; onClose: () => v
     e.preventDefault()
     if (!name.trim()) return
     setBusy(true)
-    const data = { name: name.trim(), examDate: examDate || null, examLabel: examLabel.trim() || null }
+    const data = { name: name.trim(), examDate: examDate || null, examTime: (examDate && examTime) || null, examLabel: examLabel.trim() || null }
     if (deck) {
       await updateDeck(deck.id, data)
       onClose()
@@ -48,6 +49,13 @@ export function DeckFormSheet({ deck, onClose }: { deck?: Deck; onClose: () => v
               <input className="input" type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} />
             </Field>
           </div>
+          <div style={{ flex: 1 }}>
+            <Field label="שעה (לא חובה)">
+              <input className="input" type="time" value={examTime} disabled={!examDate} onChange={(e) => setExamTime(e.target.value)} />
+            </Field>
+          </div>
+        </div>
+        <div className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
           <div style={{ flex: 1 }}>
             <Field label="מועד (לא חובה)">
               <input className="input" dir="auto" enterKeyHint="done" autoComplete="off" value={examLabel} onChange={(e) => setExamLabel(e.target.value)} placeholder="מועד א'" />

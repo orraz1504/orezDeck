@@ -43,7 +43,7 @@ export async function restoreBackup(file: File, onProgress?: (msg: string) => vo
   let cards = 0
   for (const [i, d] of parsed.decks.entries()) {
     onProgress?.(`משחזר חפיסה ${i + 1} מתוך ${parsed.decks.length}…`)
-    const id = await createDeck({ name: d.name, examDate: d.examDate, examLabel: d.examLabel })
+    const id = await createDeck({ name: d.name, examDate: d.examDate, examTime: d.examTime, examLabel: d.examLabel })
     await updateDeck(id, { roundNumber: d.roundNumber, lastRoundEndedAt: d.lastRoundEndedAt })
     const restored = d.cards.map((c) => ({ ...c, imageId: c.imageId ? imageMap.get(c.imageId) : undefined }) as NewCard)
     await addCards(id, restored)

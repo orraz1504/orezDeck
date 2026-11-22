@@ -13,7 +13,9 @@
  *
  * POOL (planSession)
  *   continue — cards not yet seen in the current round (+ "שוב"-last cards).
- *              When nothing is left, a new round starts.
+ *              When nothing is left, a new round starts. If fewer are left
+ *              than the session size, the session is topped up with cards
+ *              already seen this round (`extra`, weakest first, used last).
  *   weak     — seen cards with effective mastery 0–2, or "שוב"/"קשה" last time.
  *   all      — starts a new round now; the whole deck.
  *   partial  — the cards are one category of the deck. Rounds are deck-wide,
@@ -34,8 +36,8 @@
  *
  * IN-SESSION
  *   The session is exactly `quota` planned cards; repeats don't count.
- *   again → back after 3–5 cards and ≥ 60 s (whichever is later)
- *   hard  → back after ~10 cards and ≥ 3 min; at stored mastery ≥ 3 it doesn't
+ *   again → back after 3–5 cards and ≥ 3 min (whichever is later)
+ *   hard  → back after ~10 cards and ≥ 8 min; at stored mastery ≥ 3 it doesn't
  *           come back (it gets priority next session instead)
  *   good / easy → done for this session
  *   At most 3 repeats in a row while planned cards are waiting.
@@ -46,8 +48,10 @@
  *
  * GRADING (applyRating)
  *   again → mastery = floor(mastery / 2), lapses + 1, lapsesSinceEdit + 1
+ *           (no lapse for the closing showing at the end of a session)
  *   hard  → unchanged
- *   good  → + 1 (a "טוב" after ≥ 20 s counts as "קשה", if enabled; not for problem/image cards)
+ *   good  → + 1 (a slow "טוב" counts as "קשה", if enabled; not for problem/image
+ *           cards. Slow = ≥ 20 s, more for long cards or cards that took long before)
  *   easy  → + 2 (max 5)
  */
 import { adaptNewShare, baseNewShare, effectiveLevel, examInfo, isLeech, isWeakNow, lapsesSinceEdit, type ExamPhase } from './effective'
@@ -96,6 +100,8 @@ export interface PlanOptions {
   now?: number
   /** deck.examDate (YYYY-MM-DD). */
   examDate?: string | null
+  /** deck.examTime ("HH:MM"). */
+  examTime?: string | null
 }
 
 export interface SessionPlan {
@@ -116,6 +122,8 @@ export interface SessionPlan {
   priority: string[]
   reviews: string[]
   fresh: string[]
+  /** Top-up for a short "continue" session: cards already seen this round, used last. */
+  extra: string[]
 }
 
 export function planSession(
@@ -123,9 +131,9 @@ export function planSession(
   roundNumber: number,
   mode: StudyMode,
   size: SessionSize,
-  { partial = false, rand = Math.random, now = Date.now(), examDate = null }: PlanOptions = {},
+  { partial = false, rand = Math.random, now = Date.now(), examDate = null, examTime = null }: PlanOptions = {},
 ): SessionPlan {
-  const exam = examInfo(examDate, now)
+  const exam = examInfo(examDate, now, examTime)
   let round = roundNumber
   let pool: SchedCard[]
   const nextRound = partial ? roundNumber : roundNumber + 1
@@ -153,7 +161,14 @@ export function planSession(
     ...weakestFirst(seenRest.filter(recent), now, exam.phase, rand),
   ]
   const fresh = shuffle(pool.filter(isNew), rand)
-  const quota = size === 'all' ? pool.length : Math.min(size, pool.length)
+  // A short "continue" session (end of a round) is topped up with this round's seen cards.
+  let extra: SchedCard[] = []
+  if (mode === 'continue' && size !== 'all' && pool.length < size) {
+    const inPool = new Set(pool.map((c) => c.id))
+    const rest = cards.filter((c) => !inPool.has(c.id))
+    extra = [...weakestFirst(rest.filter((c) => !recent(c)), now, exam.phase, rand), ...weakestFirst(rest.filter(recent), now, exam.phase, rand)]
+  }
+  const quota = size === 'all' ? pool.length : Math.min(size, pool.length + extra.length)
 
   const plan: SessionPlan = {
     ids: [],
@@ -167,8 +182,9 @@ export function planSession(
     priority: priority.map((c) => c.id),
     reviews: reviews.map((c) => c.id),
     fresh: fresh.map((c) => c.id),
+    extra: extra.map((c) => c.id),
   }
-  const byId = new Map(pool.map((c) => [c.id, c]))
+  const byId = new Map([...pool, ...extra].map((c) => [c.id, c]))
   plan.ids = previewPlanned(startSession(plan), (id) => byId.get(id))
   return plan
 }
@@ -202,6 +218,8 @@ export interface SessionState {
   priority: string[]
   reviews: string[]
   fresh: string[]
+  /** Top-up cards, used only when the other lists are empty. */
+  extra?: string[]
   /** The card on screen; null = session over. */
   current: { id: string; kind: ShowKind } | null
   pending: Pending[]
@@ -226,7 +244,7 @@ export interface SessionState {
 }
 
 export function startSession(
-  plan: Pick<SessionPlan, 'quota' | 'newShare' | 'partial' | 'priority' | 'reviews' | 'fresh'> & Partial<Pick<SessionPlan, 'phase'>>,
+  plan: Pick<SessionPlan, 'quota' | 'newShare' | 'partial' | 'priority' | 'reviews' | 'fresh'> & Partial<Pick<SessionPlan, 'phase' | 'extra'>>,
 ): SessionState {
   return {
     quota: plan.quota,
@@ -236,6 +254,7 @@ export function startSession(
     priority: [...plan.priority],
     reviews: [...plan.reviews],
     fresh: [...plan.fresh],
+    extra: [...(plan.extra ?? [])],
     current: null,
     pending: [],
     finals: null,
@@ -264,7 +283,8 @@ function trailing<T>(items: T[], pred: (t: T) => boolean): number {
   return n
 }
 
-type ListName = 'priority' | 'reviews' | 'fresh'
+type ListName = 'priority' | 'reviews' | 'fresh' | 'extra'
+const list = (s: SessionState, l: ListName) => (l === 'extra' ? (s.extra ?? []) : s[l])
 type Level = { leech: boolean; sibling: boolean; category: boolean }
 const LEVELS: Level[] = [
   { leech: true, sibling: true, category: true },
@@ -274,7 +294,10 @@ const LEVELS: Level[] = [
 
 /** Picks the next planned card (list + index), or null when no candidate is left. Drops deleted cards from `s`. */
 function pickPlanned(s: SessionState, info: CardLookup): { list: ListName; index: number } | null {
-  for (const l of ['priority', 'reviews', 'fresh'] as const) if (s[l].some((id) => !info(id))) s[l] = s[l].filter((id) => info(id))
+  for (const l of ['priority', 'reviews', 'fresh', 'extra'] as const) {
+    const ids = list(s, l)
+    if (ids.some((id) => !info(id))) s[l] = ids.filter((id) => info(id))
+  }
 
   const leechCap = Math.floor(s.quota * STUDY.leechSessionShare)
   const last = s.lastShown[s.lastShown.length - 1]
@@ -287,9 +310,9 @@ function pickPlanned(s: SessionState, info: CardLookup): { list: ListName; index
     if (lv.category && !s.partial && catRun >= STUDY.maxCategoryRun && categoryOf(c) === last?.cat) return false
     return true
   }
-  const find = (list: ListName, lv: Level) => {
-    const index = s[list].findIndex((id) => ok(id, lv))
-    return index === -1 ? null : { list, index }
+  const find = (l: ListName, lv: Level) => {
+    const index = list(s, l).findIndex((id) => ok(id, lv))
+    return index === -1 ? null : { list: l, index }
   }
 
   let order: ListName[]
@@ -300,8 +323,10 @@ function pickPlanned(s: SessionState, info: CardLookup): { list: ListName; index
     const wantNew = s.fresh.length > 0 && (seenLeft === 0 || s.newShown + 1 <= share * (s.newShown + s.reviewsShown + 1) + 1e-9)
     order = wantNew ? ['fresh', 'priority', 'reviews'] : ['priority', 'reviews', 'fresh']
   }
+  // The top-up only once everything else is used.
+  if (s.priority.length + s.reviews.length + s.fresh.length === 0) order = ['extra']
   // Siblings: if one note has more than half of what's left, it must go now (else it ends up back to back).
-  const left = [...s.priority, ...s.reviews, ...s.fresh]
+  const left = order.flatMap((l) => list(s, l))
   const notes = new Map<string, number>()
   for (const id of left) {
     const note = info(id)!.noteId
@@ -309,19 +334,20 @@ function pickPlanned(s: SessionState, info: CardLookup): { list: ListName; index
   }
   for (const [note, count] of notes) {
     if (note === last?.note || count * 2 <= left.length) continue
-    for (const list of order) {
-      const index = s[list].findIndex((id) => info(id)!.noteId === note && ok(id, LEVELS[2]))
-      if (index !== -1) return { list, index }
+    for (const l of order) {
+      const index = list(s, l).findIndex((id) => info(id)!.noteId === note && ok(id, LEVELS[2]))
+      if (index !== -1) return { list: l, index }
     }
   }
-  for (const list of order) {
+  for (const l of order) {
     for (const lv of LEVELS) {
-      const hit = find(list, lv)
+      const hit = find(l, lv)
       if (hit) return hit
     }
   }
-  // Nothing passes the leech cap: take whatever is left.
-  for (const list of order) if (s[list].length) return { list, index: 0 }
+  // Nothing passes the leech cap: fill the session anyway, unless the cap is strict.
+  if (STUDY.leechCapStrict) return null
+  for (const l of order) if (list(s, l).length) return { list: l, index: 0 }
   return null
 }
 
@@ -334,11 +360,11 @@ function show(s: SessionState, id: string, kind: ShowKind, info: CardLookup): Se
 
 /** Takes a planned card off its list and puts it on screen. */
 function showPlanned(s: SessionState, pick: { list: ListName; index: number }, info: CardLookup): SessionState {
-  const id = s[pick.list][pick.index]
+  const id = list(s, pick.list)[pick.index]
   return show(
     {
       ...s,
-      [pick.list]: s[pick.list].filter((_, i) => i !== pick.index),
+      [pick.list]: list(s, pick.list).filter((_, i) => i !== pick.index),
       plannedShown: s.plannedShown + 1,
       newShown: s.newShown + (pick.list === 'fresh' ? 1 : 0),
       reviewsShown: s.reviewsShown + (pick.list === 'reviews' || (s.coverFirst && pick.list === 'priority') ? 1 : 0),
@@ -456,15 +482,28 @@ export interface RatingOptions {
   /** Response-time setting: a slow "טוב" counts as "קשה" for mastery. */
   slowGoodAsHard?: boolean
   cardType?: Card['type']
+  /** Length of the question text (long cards get more time). */
+  textLength?: number
+  /** The card's previous answer time (a card that always takes long isn't "slow"). */
+  previousMs?: number
+  /** false = a "שוב" doesn't count as a lapse (the closing showing at the end of a session). */
+  countLapse?: boolean
+}
+
+/** When a "טוב" counts as slow: 20 s, + time for long text, ≥ 1.5× the card's last time, ≤ 60 s. */
+export function slowThreshold(textLength = 0, previousMs?: number): number {
+  const byLength = STUDY.slowGoodMs + Math.max(0, textLength - STUDY.slowGoodFreeChars) * STUDY.slowGoodMsPerChar
+  const byHistory = previousMs !== undefined ? previousMs * STUDY.slowGoodVsPrevious : 0
+  return Math.min(STUDY.slowGoodMaxMs, Math.max(byLength, byHistory))
 }
 
 /** True when a "טוב" counts as "קשה" for mastery because it was slow. */
-export function isSlowGood(rating: Rating, { answerMs, slowGoodAsHard = false, cardType }: RatingOptions): boolean {
+export function isSlowGood(rating: Rating, { answerMs, slowGoodAsHard = false, cardType, textLength, previousMs }: RatingOptions): boolean {
   return (
     slowGoodAsHard &&
     rating === 'good' &&
     answerMs !== undefined &&
-    answerMs >= STUDY.slowGoodMs &&
+    answerMs >= slowThreshold(textLength, previousMs) &&
     cardType !== 'problem' &&
     cardType !== 'image'
   )
@@ -491,6 +530,7 @@ export function applyRating(
   if (opts.answerMs !== undefined) base.lastAnswerMs = Math.round(Math.min(STUDY.maxAnswerMs, Math.max(0, opts.answerMs)))
   switch (isSlowGood(rating, opts) ? 'hard' : rating) {
     case 'again':
+      if (opts.countLapse === false) return { ...base, mastery: Math.floor(card.mastery / 2) }
       return { ...base, mastery: Math.floor(card.mastery / 2), lapses: card.lapses + 1, lapsesSinceEdit: base.lapsesSinceEdit + 1 }
     case 'hard':
       return base

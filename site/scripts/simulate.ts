@@ -1,9 +1,10 @@
 /**
  * Virtual-student simulation: `npm run simulate`
  *
- * A 300-card deck (6 topics, some cloze notes with sibling cards), 2 sessions a
- * day (09:00 and 19:00) of 60 cards in "המשך סבב", in three scenarios:
- * exam in 5 days, exam tomorrow, and no exam date (5 days, measured on day 6 at 09:00).
+ * A 300-card deck (6 topics, some cloze notes with sibling cards), sessions of 60
+ * cards in "המשך סבב" (2 a day at 09:00 and 19:00, or 3 at 09:00/14:00/19:00), in
+ * five scenarios: exam in 5 days, exam tomorrow, no exam date (5 days), exam in
+ * 14 days, and exam in 5 days with 3 sessions a day.
  * Each scenario runs with the current scheduler ("after") and with a frozen copy of
  * the previous one ("before", scripts/baseline/legacyScheduler.ts), on the same
  * seeds and the same student. Numbers are averages over SEEDS runs.
@@ -115,9 +116,11 @@ function sessionAfter(cards: SimCard[], deck: Deck, now: number, rand: () => num
   let answers = 0
   while (s.current) {
     const c = byId.get(s.current.id)!
+    const closing = s.current.kind === 'final'
     const { rating, ms } = answer(c, now, rand)
     s = rateCurrent(s, rating, info, now, rand)
-    Object.assign(c, applyRating(c, rating, plan.round, now, { answerMs: ms, slowGoodAsHard: true, cardType: c.type }))
+    const opts = { answerMs: ms, slowGoodAsHard: true, cardType: c.type, textLength: 60, previousMs: c.lastAnswerMs, countLapse: !closing }
+    Object.assign(c, applyRating(c, rating, plan.round, now, opts))
     now += CARD_MS
     answers++
   }
@@ -165,7 +168,7 @@ const ymd = (t: number) => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
 }
 
-function run(engine: 'before' | 'after', days: number, withExam: boolean, seed: number): Result {
+function run(engine: 'before' | 'after', days: number, withExam: boolean, seed: number, hours: number[]): Result {
   const rand = seeded(seed)
   const cards = makeDeck(seeded(seed * 7919))
   const start = new Date(2026, 0, 5, 9).getTime() // a Monday, 09:00
@@ -176,7 +179,7 @@ function run(engine: 'before' | 'after', days: number, withExam: boolean, seed: 
   let total = 0
   for (let d = 0; d < days; d++) {
     let answers = 0
-    for (const hour of [0, 10]) {
+    for (const hour of hours) {
       const [, n] = session(cards, deck, start + d * DAY + hour * HOUR, rand)
       answers += n
     }
@@ -225,10 +228,13 @@ const f0 = (x: number) => x.toFixed(0)
 const pct = (x: number) => `${(x * 100).toFixed(0)}%`
 const levels = (xs: number[]) => xs.map((x, i) => `${i}:${f0(x)}`).join(' ')
 
-function report(title: string, days: number, withExam: boolean) {
+const TWICE = [0, 10] // 09:00, 19:00
+const THRICE = [0, 5, 10] // 09:00, 14:00, 19:00
+
+function report(title: string, days: number, withExam: boolean, hours = TWICE) {
   const seeds = Array.from({ length: SEEDS }, (_, i) => i + 1)
-  const before = average(seeds.map((s) => run('before', days, withExam, s)))
-  const after = average(seeds.map((s) => run('after', days, withExam, s)))
+  const before = average(seeds.map((s) => run('before', days, withExam, s, hours)))
+  const after = average(seeds.map((s) => run('after', days, withExam, s, hours)))
   console.log(`\n=== ${title} ===`)
   console.log('day | coverage before → after | never seen before → after | answers before → after')
   for (let d = 0; d < days; d++) {
@@ -248,7 +254,9 @@ function report(title: string, days: number, withExam: boolean) {
   console.log(`  est. recall        ${pct(before.recall)} → ${pct(after.recall)}  (student model, ${at})`)
 }
 
-console.log(`Virtual student · ${DECK_SIZE} cards · 2 sessions/day × ${SESSION} cards · average of ${SEEDS} seeds`)
-report('Exam in 5 days', 5, true)
-report('Exam tomorrow', 1, true)
-report('No exam date (5 days)', 5, false)
+console.log(`Virtual student · ${DECK_SIZE} cards · sessions of ${SESSION} cards · average of ${SEEDS} seeds`)
+report('Exam in 5 days · 2 sessions/day', 5, true)
+report('Exam tomorrow · 2 sessions/day', 1, true)
+report('No exam date · 5 days · 2 sessions/day', 5, false)
+report('Exam in 14 days · 2 sessions/day', 14, true)
+report('Exam in 5 days · 3 sessions/day', 5, true, THRICE)

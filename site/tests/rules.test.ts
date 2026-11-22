@@ -88,6 +88,9 @@ describe('schema validation', () => {
     await assertFails(setDoc(cardRef(), { ...card, tags: 'heart' }))
     await assertFails(setDoc(doc(me(), 'users/me/decks/d2'), { ...deck, roundNumber: 0 }))
     await assertFails(setDoc(doc(me(), 'users/me/decks/d2'), { ...deck, examDate: 'tomorrow' }))
+    await assertFails(setDoc(doc(me(), 'users/me/decks/d2'), { ...deck, examTime: '25:00' }))
+    await assertFails(setDoc(doc(me(), 'users/me/decks/d2'), { ...deck, examTime: '9:00' }))
+    await assertFails(setDoc(doc(me(), 'users/me/decks/d2'), { ...deck, examTime: 900 }))
   })
 
   it('rejects missing required fields', async () => {
@@ -105,6 +108,11 @@ describe('schema validation', () => {
   it('rejects timestamps in the future', async () => {
     await assertFails(setDoc(cardRef(), { ...card, createdAt: now + 3_600_000 }))
     await assertFails(setDoc(cardRef(), { ...card, lastSeen: now + 3_600_000 }))
+  })
+
+  it('deck exam time is optional "HH:MM" or null', async () => {
+    await assertSucceeds(setDoc(doc(me(), 'users/me/decks/d3'), { ...deck, examTime: '14:30' }))
+    await assertSucceeds(setDoc(doc(me(), 'users/me/decks/d4'), { ...deck, examTime: null }))
   })
 
   it('learning fields: lapsesSinceEdit and lastAnswerMs (optional, typed, in range)', async () => {

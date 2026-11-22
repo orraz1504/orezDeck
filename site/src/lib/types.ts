@@ -21,6 +21,8 @@ export interface Deck {
   name: string
   /** ISO date, YYYY-MM-DD */
   examDate?: string | null
+  /** Exam time "HH:MM" (local); missing = 09:00 (STUDY.examHour). */
+  examTime?: string | null
   /** Free-text exam label, e.g. "מועד א'" */
   examLabel?: string | null
   createdAt: number
