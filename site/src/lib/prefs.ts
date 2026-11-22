@@ -43,3 +43,8 @@ const slowGood = boolPref('kartisiyot.slowGoodAsHard', true)
 /** Response time: a "טוב" after 20 s or more counts as "קשה" for mastery (on by default). */
 export const setSlowGoodPref = slowGood.set
 export const useSlowGoodPref = slowGood.use
+
+const quitSummary = boolPref('kartisiyot.quitSummary', true)
+/** Leaving a session early shows the session summary (on by default). */
+export const setQuitSummaryPref = quitSummary.set
+export const useQuitSummaryPref = quitSummary.use

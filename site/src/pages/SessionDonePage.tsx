@@ -29,7 +29,7 @@ export function SessionDonePage() {
       <div className="study__stage" style={{ justifyContent: 'center' }}>
         <div className="done-card stack" style={{ gap: 22 }}>
           <div className="stack" style={{ gap: 6 }}>
-            <h1 className="page-title">הסשן הסתיים</h1>
+            <h1 className="page-title">{summary.early ? 'יצאת מהסשן' : 'הסשן הסתיים'}</h1>
             <div className="page-sub">
               <bdi>{deck?.name}</bdi>
               {summary.tag && (
@@ -58,6 +58,13 @@ export function SessionDonePage() {
               <span className="stats3__l">דקות</span>
             </div>
           </div>
+
+          {summary.early && (summary.early.plannedLeft > 0 || summary.early.repeatsLeft > 0) && (
+            <div className="muted" style={{ fontSize: 14 }}>
+              נשארו בסשן {n(summary.early.plannedLeft)} כרטיסים
+              {summary.early.repeatsLeft > 0 && ` ו־${n(summary.early.repeatsLeft)} חזרות`}. ההתקדמות של מה שדירגת נשמרה.
+            </div>
+          )}
 
           {totalRatings > 0 && (
             <div className="stack" style={{ gap: 10 }}>

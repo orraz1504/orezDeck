@@ -4,13 +4,14 @@ import { exportBackup, restoreBackup } from '../data/backupOps'
 import { seedDemoData } from '../data/demo'
 import { deleteAllData, signOut, useAuth } from '../data/store'
 import { MAX_BACKUP_BYTES } from '../lib/backup'
-import { setSlowGoodPref, setSwipePref, useSlowGoodPref, useSwipePref } from '../lib/prefs'
+import { setQuitSummaryPref, setSlowGoodPref, setSwipePref, useQuitSummaryPref, useSlowGoodPref, useSwipePref } from '../lib/prefs'
 import { setThemePref, useThemePref, type ThemePref } from '../lib/theme'
 
 export function SettingsPage() {
   const pref = useThemePref()
   const swipe = useSwipePref()
   const slowGood = useSlowGoodPref()
+  const quitSummary = useQuitSummaryPref()
   const { user } = useAuth()
   const [toast, showToast] = useToast()
   const [busy, setBusy] = useState<string | null>(null)
@@ -86,6 +87,12 @@ export function SettingsPage() {
         </Checkbox>
         <div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
           "טוב" אחרי 20 שניות או יותר עד "הצג תשובה" נספר כמו "קשה" לרמת השליטה. לא חל על כרטיסי בעיה ותמונה.
+        </div>
+        <Checkbox checked={quitSummary} onChange={setQuitSummaryPref}>
+          סיכום ביציאה מוקדמת
+        </Checkbox>
+        <div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
+          יציאה מסשן לפני שהסתיים מציגה סיכום של מה שעשית בו (אם דירגת לפחות כרטיס אחד).
         </div>
       </div>
 

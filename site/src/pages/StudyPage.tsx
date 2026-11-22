@@ -22,7 +22,7 @@ import {
   type SessionState,
 } from '../lib/scheduler'
 import { isLeech, type Card, type CardProgress, type Deck, type Rating, type SessionSize, type StudyMode } from '../lib/types'
-import { useSlowGoodPref, useSwipePref } from '../lib/prefs'
+import { useQuitSummaryPref, useSlowGoodPref, useSwipePref } from '../lib/prefs'
 import { splitPrompt } from '../lib/splitPrompt'
 import { STUDY } from '../lib/studyConfig'
 import { useSwipe } from '../lib/useSwipe'
@@ -44,6 +44,8 @@ export interface SessionSummary {
   /** Cards newly marked as seen in that round during this session. */
   newlySeen: number
   roundCompleted: boolean
+  /** Left before the end: planned cards and repeats that were still to come. */
+  early?: { plannedLeft: number; repeatsLeft: number }
 }
 
 /** A session parked in sessionStorage while one of its cards is being edited ("ערוך עכשיו"). */
@@ -199,6 +201,7 @@ function Session({
   const [startedAt] = useState(() => parked?.startedAt ?? Date.now())
   const newlySeen = useRef(parked?.newlySeen ?? 0)
   const slowGoodAsHard = useSlowGoodPref()
+  const quitSummary = useQuitSummaryPref()
 
   // Start a new round if the plan says so (once — guarded for StrictMode).
   const roundBumped = useRef(false)
@@ -240,7 +243,7 @@ function Session({
   const totalSteps = variant?.steps.length ?? 0
 
   const finish = useCallback(
-    (final: SessionState) => {
+    (final: SessionState, early = false) => {
       const merged = cards.map((c) => ({ ...c, ...written.current.get(c.id) }))
       const roundCompleted = isRoundComplete(merged, plan.round)
       if (roundCompleted && !(deck.lastRoundEndedAt && deck.lastRoundEndedAt > startedAt)) {
@@ -251,12 +254,14 @@ function Session({
         mode,
         size,
         tag,
-        cards: final.done.length,
+        // Early exit: cards still waiting for a repeat were answered too.
+        cards: early ? new Set([...final.done, ...final.pending.map((p) => p.id), ...final.againOpen]).size : final.done.length,
         ratings: final.ratings,
         minutes: Math.max(1, Math.round((Date.now() - startedAt) / 60000)),
         round: plan.round,
         newlySeen: newlySeen.current,
         roundCompleted,
+        early: early ? { plannedLeft: plannedLeft(final) + (final.current?.kind === 'planned' ? 1 : 0), repeatsLeft: repeatsLeft(final) } : undefined,
       }
       navigate(`/deck/${deckId}/done`, { replace: true, state: summary })
     },
@@ -373,11 +378,18 @@ function Session({
     else rate(dir === 'right' ? 'good' : 'again')
   }
 
+  /** Leaving before the end: the summary (setting, if anything was rated), else back to the deck. */
+  const wantsSummary = quitSummary && session.answered > 0
+  const quit = useCallback(() => {
+    if (wantsSummary) finish(session, true)
+    else navigate(`/deck/${deckId}`)
+  }, [wantsSummary, finish, session, navigate, deckId])
+
   // Keyboard: Space/Enter reveal, 1–4 rate, Esc exit.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
-      if (e.key === 'Escape') navigate(`/deck/${deckId}`)
+      if (e.key === 'Escape') quit()
       else if (!revealed && (e.key === ' ' || e.key === 'Enter')) {
         e.preventDefault()
         reveal()
@@ -387,7 +399,7 @@ function Session({
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [revealed, reveal, rate, navigate, deckId])
+  }, [revealed, reveal, rate, quit])
 
   if (!current) {
     // Nothing to study (empty pool), or every remaining card was deleted.
@@ -414,7 +426,17 @@ function Session({
   return (
     <div className="study">
       <div className="study__bar">
-        <Link to={`/deck/${deckId}`} className="icon-btn study__exit" aria-label="יציאה">
+        <Link
+          to={`/deck/${deckId}`}
+          className="icon-btn study__exit"
+          aria-label="יציאה"
+          onClick={(e) => {
+            if (wantsSummary) {
+              e.preventDefault()
+              quit()
+            }
+          }}
+        >
           <Icon name="close" size={20} />
           <span className="study__exit-label">יציאה</span>
         </Link>
