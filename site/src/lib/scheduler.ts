@@ -277,6 +277,18 @@ export function plannedLeft(s: SessionState): number {
   return Math.max(0, s.quota - s.plannedShown)
 }
 
+/**
+ * Repeats still to come, including the card on screen if it is one: pending repeats and open "שוב" cards
+ * (they all come back once at the end), or what's left of the end-phase queue.
+ */
+export function repeatsLeft(s: SessionState): number {
+  const onScreen = s.current && s.current.kind !== 'planned' ? 1 : 0
+  if (s.finals !== null) return s.finals.length + onScreen
+  const ids = new Set([...s.pending.map((p) => p.id), ...s.againOpen])
+  if (s.current) ids.delete(s.current.id)
+  return ids.size + onScreen
+}
+
 function trailing<T>(items: T[], pred: (t: T) => boolean): number {
   let n = 0
   for (let i = items.length - 1; i >= 0 && pred(items[i]); i--) n++

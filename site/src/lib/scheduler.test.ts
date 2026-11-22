@@ -10,6 +10,7 @@ import {
   nextVariant,
   planSession,
   plannedLeft,
+  repeatsLeft,
   rateCurrent,
   slowThreshold,
   startSession,
@@ -331,6 +332,26 @@ describe('session — rules that must hold', () => {
     expect(plannedLeft(s)).toBe(4)
     s = rateCurrent(s, 'again', info, NOW, fixed(0))
     expect(plannedLeft(s)).toBe(3)
+  })
+
+  it('"repeats left" counts the cards still coming back, down to 0 at the very end', () => {
+    const cards = deck(5)
+    const byId = new Map(cards.map((c) => [c.id, { ...c }]))
+    const info = (id: string) => byId.get(id)
+    let s = nextCard(startSession(plan(cards, 1, 'continue', 50)), info, NOW)
+    expect(repeatsLeft(s)).toBe(0)
+    let now = NOW
+    // Every card "שוב" every time: the planned count runs out first, then the repeats count down.
+    for (let i = 0; s.current && i < 100; i++) {
+      const total = plannedLeft(s) + (s.current.kind === 'planned' ? 1 : 0) + repeatsLeft(s)
+      expect(total).toBeGreaterThan(0)
+      const id = s.current.id
+      s = rateCurrent(s, 'again', info, now, fixed(0))
+      Object.assign(byId.get(id)!, applyRating(byId.get(id)!, 'again', 1, now))
+      now += 10 * MIN
+    }
+    expect(s.current).toBeNull()
+    expect(repeatsLeft(s)).toBe(0)
   })
 
   it('is a no-op once the session is over', () => {

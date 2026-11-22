@@ -14,6 +14,7 @@ import {
   nextVariant,
   planSession,
   plannedLeft,
+  repeatsLeft,
   rateCurrent,
   startSession,
   type SchedCard,
@@ -221,6 +222,7 @@ function Session({
     if (session.current && !byId.has(session.current.id)) setSession((s) => nextCard({ ...s, current: null }, info, Date.now()))
   }, [session, byId, info])
   const left = plannedLeft(session) + (session.current?.kind === 'planned' ? 1 : 0)
+  const repeats = repeatsLeft(session)
 
   /** Time from showing the card to "הצג תשובה" (response-time setting). */
   const shownAt = useRef(Date.now())
@@ -431,6 +433,12 @@ function Session({
         </div>
         <div className="study__left">
           נותרו <span className="num">{left}</span>
+          {repeats > 0 && (
+            <>
+              {' '}
+              + <span className="num">{repeats}</span> {repeats === 1 ? 'חזרה' : 'חזרות'}
+            </>
+          )}
         </div>
       </div>
 
