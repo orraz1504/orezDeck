@@ -17,7 +17,7 @@ const SUB_DEFAULT: Record<Rating, string> = {
 
 /** Problem cards never repeat inside a session. */
 const SUB_PROBLEM: Record<Rating, string> = {
-  again: 'שליטה 0',
+  again: 'שליטה ÷2',
   hard: 'ללא שינוי',
   good: '+1',
   easy: '+2',
@@ -33,8 +33,22 @@ function sub(text: string) {
   ))
 }
 
-export function RatingButtons({ onRate, problem }: { onRate: (r: Rating) => void; problem?: boolean }) {
-  const subs = problem ? SUB_PROBLEM : SUB_DEFAULT
+/**
+ * `repeats` says whether "שוב"/"קשה" bring the card back in this session
+ * (not at the end of the session, and "קשה" not at level 3+).
+ */
+export function RatingButtons({
+  onRate,
+  problem,
+  repeats = { again: true, hard: true },
+}: {
+  onRate: (r: Rating) => void
+  problem?: boolean
+  repeats?: { again: boolean; hard: boolean }
+}) {
+  const subs = problem
+    ? SUB_PROBLEM
+    : { ...SUB_DEFAULT, again: repeats.again ? SUB_DEFAULT.again : SUB_PROBLEM.again, hard: repeats.hard ? SUB_DEFAULT.hard : SUB_PROBLEM.hard }
   return (
     <div className="rating">
       {RATINGS.map(({ r, label }) => (

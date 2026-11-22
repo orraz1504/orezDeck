@@ -98,6 +98,8 @@ export function cleanCard(raw: unknown): Omit<Card, 'id'> | null {
   opt('maskId', str(raw.maskId, 100))
   opt('prompt', str(raw.prompt, 500))
   opt('group', str(raw.group, 200))
+  opt('lapsesSinceEdit', int(raw.lapsesSinceEdit, 0, 100_000))
+  opt('lastAnswerMs', int(raw.lastAnswerMs, 0, 3_600_000))
   opt('clozeIndex', int(raw.clozeIndex, 1, 500))
   opt('lastVariant', int(raw.lastVariant, 0, 99))
   opt('occlusionMode', oneOf(raw.occlusionMode, ['hideOne', 'hideAll'] as const))

@@ -62,6 +62,10 @@ export interface CardProgress {
   /** Last round in which the card was seen; 0 = never. */
   seenInRound: number
   lastRating: Rating | null
+  /** "שוב" answers since the card's content was last edited; missing = `lapses` (older cards). */
+  lapsesSinceEdit?: number
+  /** ms from showing the card to "הצג תשובה", last time. */
+  lastAnswerMs?: number
 }
 
 /** users/{uid}/decks/{deckId}/cards/{cardId} */
@@ -126,8 +130,5 @@ export const CARD_TYPE_LABEL: Record<CardType, string> = {
   problem: 'בעיה',
 }
 
-export const LEECH_LAPSES = 3
-
-export function isLeech(card: Pick<Card, 'lapses'>): boolean {
-  return card.lapses >= LEECH_LAPSES
-}
+/** Leech = STUDY.leechLapses or more "שוב" since the card was last edited. */
+export { isLeech } from './effective'

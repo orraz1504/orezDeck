@@ -6,8 +6,8 @@ import { RichField } from '../components/RichField'
 import { Button, Field, IconButton, Spinner, Segmented, TagInput, useToast } from '../components/ui'
 import { addCards, applyNotePlan, deleteCards, newId, updateCard, useCards, useDeck, useDecks } from '../data/store'
 import { clozeIndices, wrapCloze } from '../lib/cloze'
-import { goBack } from '../lib/nav'
-import { planClozeNote } from '../lib/notes'
+import { goBack, returnPath } from '../lib/nav'
+import { changesContent, planClozeNote, resetLeechOnEdit } from '../lib/notes'
 import { CARD_TYPE_LABEL, type Card, type CardType, type ProblemVariant } from '../lib/types'
 
 const TYPES: CardType[] = ['basic', 'cloze', 'image', 'problem']
@@ -66,13 +66,13 @@ function CardEditor() {
       if (type === 'cloze') {
         const noteId = existing?.noteId ?? (existing ? existing.id : newId())
         const siblings = existing ? cards.filter((c) => (existing.noteId ? c.noteId === existing.noteId : c.id === existing.id)) : []
-        await applyNotePlan(dest, planClozeNote(siblings, noteId, { text: text.trim(), back: back.trim(), tags }))
+        await applyNotePlan(dest, resetLeechOnEdit(planClozeNote(siblings, noteId, { text: text.trim(), back: back.trim(), tags }), siblings))
       } else {
         const data: Partial<Card> =
           type === 'basic'
             ? { type, front: front.trim(), back: back.trim(), tags }
             : { type, front: front.trim() || group.trim() || cleanVariants[0].front.slice(0, 80), group: group.trim() || undefined, variants: cleanVariants, tags }
-        if (existing) await updateCard(deckId, existing.id, data)
+        if (existing) await updateCard(deckId, existing.id, changesContent(existing, data) ? { ...data, lapsesSinceEdit: 0 } : data)
         else await addCards(dest, [data as Card])
       }
       if (addAnother) {
@@ -83,7 +83,9 @@ function CardEditor() {
         showToast('הכרטיס נשמר')
         window.scrollTo({ top: 0 })
       } else {
-        navigate(`/deck/${dest}`)
+        const ret = returnPath(params)
+        if (ret) navigate(ret, { replace: true })
+        else navigate(`/deck/${dest}`)
       }
     } finally {
       setBusy(false)

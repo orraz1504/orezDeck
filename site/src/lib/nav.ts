@@ -18,3 +18,12 @@ export function studyUrl(deckId: string, mode: StudyMode, size: SessionSize, tag
   if (tag) q.set('tag', tag)
   return `/deck/${deckId}/study?${q}`
 }
+
+/**
+ * Where an editor should go after saving: the `return` query param when it's
+ * an in-app study path (set by "ערוך עכשיו"), otherwise null.
+ */
+export function returnPath(params: URLSearchParams): string | null {
+  const r = params.get('return')
+  return r && /^\/deck\/[^/]+\/study(\?|$)/.test(r) ? r : null
+}

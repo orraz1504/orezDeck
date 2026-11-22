@@ -46,7 +46,8 @@ service cloud.firestore {
     function validCard(d) {
       return d.keys().hasOnly(['type', 'tags', 'createdAt', 'noteId', 'front', 'back', 'text', 'clozeIndex',
             'imageId', 'masks', 'maskId', 'occlusionMode', 'revealStyle', 'prompt', 'group', 'variants',
-            'lastVariant', 'mastery', 'lastSeen', 'lapses', 'seenInRound', 'lastRating'])
+            'lastVariant', 'mastery', 'lastSeen', 'lapses', 'seenInRound', 'lastRating',
+            'lapsesSinceEdit', 'lastAnswerMs'])
         && d.keys().hasAll(['type', 'tags', 'createdAt', 'mastery', 'lapses', 'seenInRound'])
         && d.type in ['basic', 'cloze', 'image', 'problem']
         && d.tags is list && d.tags.size() <= 20
@@ -54,6 +55,9 @@ service cloud.firestore {
         && d.mastery is int && d.mastery >= 0 && d.mastery <= 5
         && d.lapses is int && d.lapses >= 0
         && d.seenInRound is int && d.seenInRound >= 0
+        // "שוב" answers since the last edit (leeches) and the last answer time (ms, ≤ 1 hour).
+        && (!('lapsesSinceEdit' in d) || (d.lapsesSinceEdit is int && d.lapsesSinceEdit >= 0 && d.lapsesSinceEdit <= 100000))
+        && (!('lastAnswerMs' in d) || (d.lastAnswerMs is int && d.lastAnswerMs >= 0 && d.lastAnswerMs <= 3600000))
         && optTime(d, 'lastSeen')
         && (!('lastRating' in d) || d.lastRating == null || d.lastRating in ['again', 'hard', 'good', 'easy'])
         && optStr(d, 'front', 20000) && optStr(d, 'back', 20000) && optStr(d, 'text', 20000)

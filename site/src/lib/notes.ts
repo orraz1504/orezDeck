@@ -56,3 +56,33 @@ export function planOcclusionNote(
     tags: data.tags,
   }))
 }
+
+/** Content fields whose change resets a card's leech count ("שוב" since the last edit). */
+const CONTENT_KEYS = ['front', 'back', 'text', 'masks', 'imageId', 'variants'] as const
+
+/** True when `patch` changes the card's content (not just tags or settings). */
+export function changesContent(card: Card, patch: Partial<Card>): boolean {
+  const norm = (v: unknown) => JSON.stringify(v === '' || v === undefined ? null : v)
+  const same = (a: unknown, b: unknown) => norm(a) === norm(b)
+  return CONTENT_KEYS.some((k) => {
+    if (!(k in patch)) return false
+    // An image card only cares about its own mask (other masks of the image may move freely).
+    if (k === 'masks' && card.type === 'image') {
+      const own = (masks?: Mask[]) => masks?.find((m) => m.id === card.maskId)
+      return !same(own(patch.masks), own(card.masks))
+    }
+    return !same(patch[k], card[k])
+  })
+}
+
+/** Adds lapsesSinceEdit: 0 to the updates whose content changed. */
+export function resetLeechOnEdit(plan: NotePlan, existing: Card[]): NotePlan {
+  const byId = new Map(existing.map((c) => [c.id, c]))
+  return {
+    ...plan,
+    update: plan.update.map((u) => {
+      const card = byId.get(u.id)
+      return card && changesContent(card, u.patch) ? { ...u, patch: { ...u.patch, lapsesSinceEdit: 0 } } : u
+    }),
+  }
+}

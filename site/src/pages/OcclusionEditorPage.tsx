@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { OcclusionCanvas, type CanvasTool } from '../components/OcclusionCanvas'
 import { Button, Field, IconButton, Spinner, Kbd, ModeCard, Segmented, TagInput } from '../components/ui'
 import { applyNotePlan, deleteCards, deleteImages, newId, saveImage, useCards, useDeck, useDecks, useImage } from '../data/store'
 import { ALLOWED_IMAGE_TYPES, compressImage, dataUrlBytes, type CompressedImage } from '../lib/image'
-import { planOcclusionNote } from '../lib/notes'
+import { planOcclusionNote, resetLeechOnEdit } from '../lib/notes'
 import type { Mask, OcclusionMode, RevealStyle } from '../lib/types'
 import { useIsDesktop, useMedia } from '../lib/useMedia'
-import { goBack } from '../lib/nav'
+import { goBack, returnPath } from '../lib/nav'
 
 /**
  * Image occlusion editor. A picked / pasted image is compressed in the browser
@@ -26,6 +26,7 @@ export function OcclusionEditorPage() {
 
 function OcclusionEditor() {
   const { deckId = '', noteId: routeNoteId } = useParams()
+  const [params] = useSearchParams()
   const navigate = useNavigate()
   const desktop = useIsDesktop()
   const touch = useMedia('(pointer: coarse)')
@@ -176,16 +177,16 @@ function OcclusionEditor() {
     if (pending && imageId) deleteImages([imageId])
     await applyNotePlan(
       deckId,
-      planOcclusionNote(siblings, noteId, {
+      resetLeechOnEdit(planOcclusionNote(siblings, noteId, {
         imageId: finalImageId,
         masks: masks.map((m) => ({ ...m, label: m.label.trim() })),
         occlusionMode: mode,
         revealStyle,
         prompt: prompt.trim(),
         tags,
-      }),
+      }), siblings),
     )
-    navigate(`/deck/${deckId}`)
+    navigate(returnPath(params) ?? `/deck/${deckId}`, { replace: !!returnPath(params) })
   }
 
   const back = () => goBack(navigate, `/deck/${deckId}`)

@@ -4,12 +4,13 @@ import { exportBackup, restoreBackup } from '../data/backupOps'
 import { seedDemoData } from '../data/demo'
 import { deleteAllData, signOut, useAuth } from '../data/store'
 import { MAX_BACKUP_BYTES } from '../lib/backup'
-import { setSwipePref, useSwipePref } from '../lib/prefs'
+import { setSlowGoodPref, setSwipePref, useSlowGoodPref, useSwipePref } from '../lib/prefs'
 import { setThemePref, useThemePref, type ThemePref } from '../lib/theme'
 
 export function SettingsPage() {
   const pref = useThemePref()
   const swipe = useSwipePref()
+  const slowGood = useSlowGoodPref()
   const { user } = useAuth()
   const [toast, showToast] = useToast()
   const [busy, setBusy] = useState<string | null>(null)
@@ -79,6 +80,12 @@ export function SettingsPage() {
         </Checkbox>
         <div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
           לפני התשובה: החלקה לכל צד חושפת אותה. אחרי התשובה: החלקה ימינה = טוב, שמאלה = שוב.
+        </div>
+        <Checkbox checked={slowGood} onChange={setSlowGoodPref}>
+          זמן תגובה
+        </Checkbox>
+        <div className="muted" style={{ fontSize: 14, lineHeight: 1.6 }}>
+          "טוב" אחרי 20 שניות או יותר עד "הצג תשובה" נספר כמו "קשה" לרמת השליטה. לא חל על כרטיסי בעיה ותמונה.
         </div>
       </div>
 

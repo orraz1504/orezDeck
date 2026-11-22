@@ -107,6 +107,21 @@ describe('schema validation', () => {
     await assertFails(setDoc(cardRef(), { ...card, lastSeen: now + 3_600_000 }))
   })
 
+  it('learning fields: lapsesSinceEdit and lastAnswerMs (optional, typed, in range)', async () => {
+    // Older cards without them keep working.
+    await assertSucceeds(setDoc(cardRef(), card))
+    await assertSucceeds(updateDoc(cardRef(), { mastery: 1, lastSeen: now, lastRating: 'again', lapses: 1, lapsesSinceEdit: 1, lastAnswerMs: 4200 }))
+    await assertSucceeds(updateDoc(cardRef(), { front: 'Q2', lapsesSinceEdit: 0 }))
+    await assertSucceeds(updateDoc(cardRef(), { lastAnswerMs: 3_600_000 }))
+    await assertFails(updateDoc(cardRef(), { lapsesSinceEdit: -1 }))
+    await assertFails(updateDoc(cardRef(), { lapsesSinceEdit: 1.5 }))
+    await assertFails(updateDoc(cardRef(), { lapsesSinceEdit: '2' }))
+    await assertFails(updateDoc(cardRef(), { lapsesSinceEdit: 100_001 }))
+    await assertFails(updateDoc(cardRef(), { lastAnswerMs: 3_600_001 }))
+    await assertFails(updateDoc(cardRef(), { lastAnswerMs: -5 }))
+    await assertFails(updateDoc(cardRef(), { lastAnswerMs: null }))
+  })
+
   it('accepts every card type the app writes', async () => {
     await assertSucceeds(setDoc(cardRef(), { ...card, type: 'cloze', text: 'a {{c1::b}}', clozeIndex: 1, noteId: 'n1' }))
     await assertSucceeds(

@@ -9,6 +9,7 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test": "vitest run",
+    "simulate": "node --experimental-strip-types --no-warnings --import ./scripts/ts-resolve.mjs scripts/simulate.ts",
     "test:rules": "npx -y firebase-tools@15.34.1 emulators:exec --only firestore --project demo-orezdeck \"vitest run --config vitest.rules.config.ts\""
   },
   "dependencies": {

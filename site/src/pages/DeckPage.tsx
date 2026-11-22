@@ -21,6 +21,7 @@ import { clozePlain } from '../lib/cloze'
 import { examSummary, formatEpoch, n } from '../lib/format'
 import { planSession } from '../lib/scheduler'
 import { deckStats } from '../lib/stats'
+import { examInfo, perDayToFinishRound } from '../lib/effective'
 import { isLeech, type Card, type SessionSize, type StudyMode } from '../lib/types'
 import { studyUrl } from '../lib/nav'
 
@@ -58,11 +59,17 @@ export function DeckPage() {
   const scopedStats = useMemo(() => (scopeTag ? deckStats(scoped, round) : stats), [scopeTag, scoped, round, stats])
 
   // Only the counts are used here (the order is shuffled again when the session starts).
-  const plan = useMemo(() => planSession(scoped, round, mode, size, { partial: scopeTag !== null }), [scoped, round, mode, size, scopeTag])
-  const continuePlan = useMemo(
-    () => (mode === 'continue' ? plan : planSession(scoped, round, 'continue', 'all', { partial: scopeTag !== null })),
-    [mode, plan, scoped, round, scopeTag],
+  const examDate = deck?.examDate ?? null
+  const plan = useMemo(
+    () => planSession(scoped, round, mode, size, { partial: scopeTag !== null, examDate }),
+    [scoped, round, mode, size, scopeTag, examDate],
   )
+  const continuePlan = useMemo(
+    () => (mode === 'continue' ? plan : planSession(scoped, round, 'continue', 'all', { partial: scopeTag !== null, examDate })),
+    [mode, plan, scoped, round, scopeTag, examDate],
+  )
+  const [openedAt] = useState(() => Date.now())
+  const perDay = perDayToFinishRound(stats.unseen, examInfo(examDate, openedAt))
   const sessionCount = plan.ids.length
 
   const filtered = useMemo(() => {
@@ -128,6 +135,18 @@ export function DeckPage() {
     </div>
   )
 
+  // Neutral pace line: no encouragement, no warning colours.
+  const roundPace = perDay !== null && perDay > 0 && (
+    <div className="muted" style={{ fontSize: 13 }}>
+      כדי לסיים סבב לפני המבחן: ~<span className="num">{n(perDay)}</span> כרטיסים ביום
+    </div>
+  )
+  const fadingNote = stats.fading > 0 && (
+    <div className="faint" style={{ fontSize: 12.5 }}>
+      <span className="num">{n(stats.fading)}</span> כרטיסים דועכים (לא נראו זמן מה, הרמה בפועל נמוכה מהשמורה)
+    </div>
+  )
+
   const roundPanel = (
     <div className="panel panel--pad stack" style={{ gap: 10 }}>
       <div className="row" style={{ justifyContent: 'space-between', alignItems: 'baseline' }}>
@@ -137,6 +156,7 @@ export function DeckPage() {
         </div>
       </div>
       <ProgressBar value={stats.seen} total={stats.total} />
+      {roundPace}
       {deck.lastRoundEndedAt && (
         <div className="faint" style={{ fontSize: 12.5 }}>
           הסבב הקודם הסתיים ב-<span className="num">{formatEpoch(deck.lastRoundEndedAt)}</span>
@@ -256,7 +276,7 @@ export function DeckPage() {
                     checked={mode === 'weak'}
                     onSelect={() => setMode('weak')}
                     title="רק חלשים"
-                    desc={`רמות שליטה 0–2 ו"שוב"/"קשה" אחרון · ${n(scopedStats.weak)} כרטיסים`}
+                    desc={`רמת שליטה 0–2 (כולל דעיכה) ו"שוב"/"קשה" אחרון · ${n(scopedStats.weak)} כרטיסים`}
                   />
                   <ModeCard
                     checked={mode === 'all'}
@@ -294,9 +314,11 @@ export function DeckPage() {
                     </div>
                   </div>
                   <ProgressBar value={stats.seen} total={stats.total} />
+                  {roundPace}
                   <hr className="divider" style={{ margin: '4px 0' }} />
                   <div className="panel__title">חלוקה לפי רמת שליטה</div>
                   <MasteryHistogram counts={stats.byMastery} />
+                  {fadingNote}
                 </div>
               </>
             )}
@@ -328,13 +350,14 @@ export function DeckPage() {
               <div className="panel panel--pad stack" style={{ gap: 12 }}>
                 <div className="panel__title">חלוקה לפי רמת שליטה</div>
                 <MasteryRows counts={stats.byMastery} />
+                {fadingNote}
               </div>
             )}
             {stats.leeches > 0 && (
               <button type="button" className="panel panel--pad row" style={{ gap: 10, textAlign: 'start' }} onClick={() => setTag('__leech')}>
                 <span className="badge badge--leech">עלוקות</span>
                 <span className="muted" style={{ fontSize: 13.5, flex: 1 }}>
-                  {stats.leeches} כרטיסים קיבלו "שוב" 3 פעמים או יותר. כדאי לשכתב אותם.
+                  {stats.leeches} כרטיסים קיבלו "שוב" 3 פעמים או יותר מאז העריכה האחרונה. כדאי לשכתב או לפצל אותם.
                 </span>
               </button>
             )}

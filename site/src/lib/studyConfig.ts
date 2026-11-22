@@ -1,0 +1,73 @@
+/**
+ * Every tunable number of the study algorithm, in one place.
+ * Times are in ms unless the name says otherwise.
+ */
+
+const SEC = 1000
+const MIN = 60 * SEC
+const HOUR = 60 * MIN
+export const DAY = 24 * HOUR
+
+export const STUDY = {
+  /* Mastery */
+  maxMastery: 5,
+  /** "רק חלשים": effective mastery at or below this (or "שוב"/"קשה" last). */
+  weakMaxMastery: 2,
+  /** Counted as "high" in the stats. */
+  highMastery: 4,
+
+  /* Repeats inside a session: back after N other cards AND at least this long, whichever is later. */
+  againGapCards: [3, 5] as [number, number],
+  againMinMs: 60 * SEC,
+  hardGapCards: [9, 11] as [number, number],
+  hardMinMs: 3 * MIN,
+  /** "קשה" on a card at this stored mastery or higher doesn't come back in the session. */
+  hardLeavesFromMastery: 3,
+  /** At most this many repeats in a row while planned cards are still waiting. */
+  maxRepeatRun: 3,
+
+  /** Cards seen less than this long ago go to the end of a new session (used only if needed). */
+  recentlySeenMs: 30 * MIN,
+
+  /* Decay: effective = mastery − daysSinceLastSeen / decayDays[mastery] (level 0 doesn't decay). */
+  decayDays: { 1: 1, 2: 2, 3: 4, 4: 7, 5: 14 } as Record<number, number>,
+  /** "Fading" in the stats: effective at least this much below the stored mastery. */
+  fadingDrop: 1,
+
+  /* Exam date (deck.examDate is a calendar day; the exam is assumed at this local hour). */
+  examHour: 9,
+  /** More than this many days before the exam: normal behaviour. */
+  coverageFromDays: 7,
+  /** Last stretch before the exam ("refresh"). */
+  refreshHours: 48,
+  /** Finish seeing every card this many days before the exam. */
+  coverageBufferDays: 2,
+  /** decayDays is multiplied by this in the refresh phase (cards fade twice as fast). */
+  refreshDecayFactor: 0.5,
+
+  /* Share of never-seen cards among the planned ones ("1:4" = one in four). */
+  newShareDefault: 1 / 4,
+  newShareMin: 1 / 8,
+  newShareMax: 1,
+  /** In-session adjustment over the last N answers. */
+  adaptWindow: 10,
+  /** This many "שוב" in the window → at most newShareStruggling. */
+  adaptAgainCount: 3,
+  newShareStruggling: 1 / 6,
+  /** Whole window "טוב"/"קל" → at least newShareCruising. */
+  newShareCruising: 1 / 2,
+
+  /* Leeches */
+  /** Leech = this many "שוב" since the card was last edited. */
+  leechLapses: 3,
+  /** At most this share of a session's planned cards are leeches (unless nothing else is left). */
+  leechSessionShare: 0.2,
+
+  /* Response time (setting, on by default): a slow "טוב" counts as "קשה" for mastery. */
+  slowGoodMs: 20 * SEC,
+  /** Stored answer times are capped (and validated by firestore.rules) at this. */
+  maxAnswerMs: HOUR,
+
+  /** Topic mixing: at most this many cards in a row from one category (unless no alternative). */
+  maxCategoryRun: 4,
+} as const
