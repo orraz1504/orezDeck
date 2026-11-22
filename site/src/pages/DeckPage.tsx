@@ -256,7 +256,7 @@ export function DeckPage() {
                     checked={mode === 'weak'}
                     onSelect={() => setMode('weak')}
                     title="רק חלשים"
-                    desc={`רמות שליטה 0–2 ו"שוב" אחרון · ${n(scopedStats.weak)} כרטיסים`}
+                    desc={`רמות שליטה 0–2 ו"שוב"/"קשה" אחרון · ${n(scopedStats.weak)} כרטיסים`}
                   />
                   <ModeCard
                     checked={mode === 'all'}

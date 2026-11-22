@@ -186,6 +186,7 @@ describe('planSession — weak', () => {
     expect(isWeakCard(card())).toBe(false)
     expect(isWeakCard(seen({ mastery: 0 }))).toBe(true)
     expect(isWeakCard(seen({ mastery: 3 }))).toBe(false)
+    expect(isWeakCard(seen({ mastery: 4, lastRating: 'hard' }))).toBe(true)
   })
 })
 
@@ -248,18 +249,35 @@ describe('rateCurrent', () => {
 
   it('re-inserts at the end when fewer cards remain', () => {
     expect(rateCurrent(startSession(['a', 'b']), 'again', 'basic', fixed(0)).queue).toEqual(['b', 'a'])
-    expect(rateCurrent(startSession(['a']), 'hard', 'basic').queue).toEqual(['a'])
+    expect(rateCurrent(startSession(['a', 'b', 'c']), 'hard', 'basic').queue).toEqual(['b', 'c', 'a'])
   })
 
-  it('a card only leaves after good or easy', () => {
-    let s = startSession(['a'])
-    s = rateCurrent(s, 'again', 'basic')
-    s = rateCurrent(s, 'hard', 'basic')
+  it('stops repeating once every planned card was shown', () => {
+    let s = startSession(['a', 'b'])
+    s = rateCurrent(s, 'again', 'basic') // b not shown yet → a comes back
+    expect(s.queue).toEqual(['b', 'a'])
+    s = rateCurrent(s, 'hard', 'basic') // b: everything shown → leaves
     expect(s.queue).toEqual(['a'])
-    s = rateCurrent(s, 'good', 'basic')
+    s = rateCurrent(s, 'again', 'basic') // a: leaves, no endless loop
     expect(s.queue).toEqual([])
+    expect(s.done).toEqual(['b', 'a'])
     expect(s.answered).toBe(3)
-    expect(s.ratings).toEqual({ again: 1, hard: 1, good: 1, easy: 0 })
+    expect(s.ratings).toEqual({ again: 2, hard: 1, good: 0, easy: 0 })
+  })
+
+  it('shows every planned card exactly once at least, and finishes', () => {
+    const ids = Array.from({ length: 50 }, (_, i) => `c${i}`)
+    let s = startSession(ids)
+    const seen = new Set<string>()
+    for (let i = 0; s.queue.length && i < 10000; i++) {
+      seen.add(s.queue[0])
+      s = rateCurrent(s, i % 2 ? 'hard' : 'again', 'basic')
+    }
+    expect(s.queue).toEqual([])
+    expect(seen.size).toBe(50)
+    expect(new Set(s.done).size).toBe(50)
+    expect(s.done.length).toBe(50)
+    expect(s.answered).toBeLessThanOrEqual(5 * 50) // a new card at least every 4, plus one last showing each
   })
 
   it('problem cards never repeat within the session', () => {

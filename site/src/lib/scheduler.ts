@@ -16,7 +16,7 @@
  *
  *   continue — cards not yet seen in the current round (+ "שוב"-last cards).
  *              When nothing is left, a new round starts.
- *   weak     — seen cards with mastery 0–2, or "שוב" last time.
+ *   weak     — seen cards with mastery 0–2, or "שוב"/"קשה" last time.
  *   all      — starts a new round now; the whole deck, weakest first.
  *
  *   partial  — the cards passed in are a subset of the deck (one category).
@@ -29,7 +29,10 @@
  *   hard  → back in ~10 cards, mastery unchanged
  *   good  → leaves the session, mastery + 1 (max 5)
  *   easy  → leaves the session, mastery + 2 (max 5)
- *   A card leaves only after "good" or "easy". Problem cards never come back
+ *   Repeats only happen while some planned cards haven't been shown yet: the
+ *   session is exactly the planned cards, each shown at least once, and it
+ *   ends once the last of them was shown — a card still not "good" by then
+ *   just leaves (it stays weak for "רק חלשים"). Problem cards never come back
  *   within the session (you'd remember the answer); "שוב" gives them priority
  *   next session instead.
  */
@@ -40,6 +43,8 @@ export const WEAK_MAX_MASTERY = 2
 export const NEW_EVERY = 4 // one new card per 4 slots → 3 reviews : 1 new
 export const AGAIN_GAP: [number, number] = [3, 5]
 export const HARD_GAP: [number, number] = [9, 11]
+/** At most this many repeats in a row while planned cards still wait to be shown. */
+export const MAX_REPEAT_RUN = 3
 
 export type SchedCard = Pick<Card, 'id' | 'type' | 'createdAt' | 'noteId'> & CardProgress
 
@@ -47,8 +52,9 @@ export type SchedCard = Pick<Card, 'id' | 'type' | 'createdAt' | 'noteId'> & Car
 
 export const isNew = (c: SchedCard) => c.lastSeen === null
 export const isAgainLast = (c: SchedCard) => c.lastRating === 'again'
+export const isHardLast = (c: SchedCard) => c.lastRating === 'hard'
 export const isUnseenInRound = (c: SchedCard, round: number) => c.seenInRound < round
-export const isWeakCard = (c: SchedCard) => !isNew(c) && (c.mastery <= WEAK_MAX_MASTERY || isAgainLast(c))
+export const isWeakCard = (c: SchedCard) => !isNew(c) && (c.mastery <= WEAK_MAX_MASTERY || isAgainLast(c) || isHardLast(c))
 
 /** Fisher–Yates; returns a new array. */
 export function shuffle<T>(items: T[], rand: () => number = Math.random): T[] {
@@ -196,15 +202,17 @@ export function applyRating(card: CardProgress, rating: Rating, round: number, n
 export interface SessionState {
   /** Remaining card ids; queue[0] is the current card. */
   queue: string[]
-  /** Ids that left the session (rated good/easy, or problem cards). */
+  /** Ids that left the session (each card once). */
   done: string[]
+  /** Ids shown at least once. */
+  shown: string[]
   /** Number of ratings given. */
   answered: number
   ratings: Record<Rating, number>
 }
 
 export function startSession(ids: string[]): SessionState {
-  return { queue: [...ids], done: [], answered: 0, ratings: { again: 0, hard: 0, good: 0, easy: 0 } }
+  return { queue: [...ids], done: [], shown: [], answered: 0, ratings: { again: 0, hard: 0, good: 0, easy: 0 } }
 }
 
 function gap([lo, hi]: [number, number], rand: () => number): number {
@@ -226,15 +234,32 @@ export function rateCurrent(
   const ratings = { ...state.ratings, [rating]: state.ratings[rating] + 1 }
   const answered = state.answered + 1
 
-  const leaves = rating === 'good' || rating === 'easy' || cardType === 'problem'
+  const shownSet = new Set(state.shown).add(current)
+  const shown = [...shownSet]
+  // Only repeat while planned cards are still waiting for their first showing,
+  // so the end of the session never turns into a loop of the same few cards.
+  const unseenLeft = rest.some((id) => !shownSet.has(id))
+
+  const leaves = rating === 'good' || rating === 'easy' || cardType === 'problem' || !unseenLeft
   if (leaves) {
-    return { queue: rest, done: [...state.done, current], answered, ratings }
+    return { queue: rest, done: [...state.done, current], shown, answered, ratings }
   }
-  // Re-insert after N other cards (or at the end if fewer remain).
-  const after = gap(rating === 'again' ? AGAIN_GAP : HARD_GAP, rand)
+  // Re-insert after N other cards (or at the end if fewer remain) — but never
+  // into a run of MAX_REPEAT_RUN repeats: then it goes after the next unseen
+  // card, so repeats can't crowd out the cards still waiting to be shown.
   const queue = [...rest]
-  queue.splice(Math.min(after, queue.length), 0, current)
-  return { queue, done: state.done, answered, ratings }
+  const isRepeat = (id: string) => shownSet.has(id)
+  let at = Math.min(gap(rating === 'again' ? AGAIN_GAP : HARD_GAP, rand), queue.length)
+  for (;;) {
+    let start = at
+    while (start > 0 && isRepeat(queue[start - 1])) start--
+    let end = at
+    while (end < queue.length && isRepeat(queue[end])) end++
+    if (end - start < MAX_REPEAT_RUN || end >= queue.length) break
+    at = end + 1 // just after the next unseen card
+  }
+  queue.splice(at, 0, current)
+  return { queue, done: state.done, shown, answered, ratings }
 }
 
 /* ───────────────────────── Problem variants ───────────────────────── */

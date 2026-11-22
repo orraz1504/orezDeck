@@ -12,7 +12,7 @@ export interface DeckStats {
   unseen: number
   /** mastery ≥ 4 */
   high: number
-  /** "רק חלשים" pool: mastery 0–2, or last answer was "שוב" */
+  /** "רק חלשים" pool: mastery 0–2, or last answer was "שוב"/"קשה" */
   weak: number
   leeches: number
   /** count per mastery level 0..5 */
@@ -21,7 +21,7 @@ export interface DeckStats {
 
 /** Same definition as the scheduler's "רק חלשים" pool (never-seen cards aren't weak). */
 export function isWeak(c: Pick<Card, 'mastery' | 'lastRating' | 'lastSeen'>): boolean {
-  return c.lastSeen !== null && (c.mastery <= WEAK_MAX_MASTERY || c.lastRating === 'again')
+  return c.lastSeen !== null && (c.mastery <= WEAK_MAX_MASTERY || c.lastRating === 'again' || c.lastRating === 'hard')
 }
 
 export function deckStats(cards: Card[], round: number): DeckStats {
