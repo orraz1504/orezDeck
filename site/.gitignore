@@ -22,3 +22,7 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Tesseract worker/core, copied from node_modules by scripts/copy-ocr.mjs
+public/ocr/tesseract-*/
+public/ocr/core-*/

@@ -110,6 +110,7 @@ export function DeckPage() {
         { label: 'עריכת שם ותאריך', onClick: () => setEditing(true) },
         { label: 'ייבוא כרטיסים', to: `/deck/${deckId}/import` },
         { label: 'כרטיס הסתרת תמונה', to: `/deck/${deckId}/occlusion/new` },
+        { label: 'הסתרת תמונות אוטומטית', to: `/deck/${deckId}/auto-occlusion` },
         { label: 'מחיקת החפיסה', onClick: onDelete, danger: true },
       ]}
     />

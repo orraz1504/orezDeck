@@ -48,6 +48,7 @@ export function planOcclusionNote(
     type: 'image',
     noteId,
     maskId,
+    maskIndex: data.masks.findIndex((m) => m.id === maskId),
     imageId: data.imageId,
     masks: data.masks,
     occlusionMode: data.occlusionMode,

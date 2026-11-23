@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest'
 import {
+  attachImages,
   cardKey,
+  imageKey,
+  imagesToImport,
+  parseBox,
   cardsToImport,
   detectDelimiter,
   dupKey,
@@ -175,5 +179,67 @@ describe('import limits', () => {
 
   it('refuses text over 5MB', () => {
     expect(parseJsonImport('x'.repeat(5 * 1024 * 1024 + 1)).error).toBeTruthy()
+  })
+})
+
+describe('image cards (JSON + image files)', () => {
+  const json = JSON.stringify({
+    cards: [
+      { type: 'image', image: 'heart.png', mode: 'hide_all', masks: [{ label: 'Left ventricle', box: [0.62, 0.55, 0.15, 0.06] }, { label: 'Aorta' }], tags: ['לב'] },
+      { type: 'image', image: 'Brain.PNG', masks: [{ label: 'אונה קדמית', box: [10, 20, 30, 25] }] },
+      { type: 'image', image: 'missing.png', masks: [{ label: 'X' }] },
+      { type: 'image', image: 'bad.png', masks: [{ box: [2, 2] }, {}] },
+      { type: 'basic', front: 'q', back: 'a' },
+    ],
+  })
+
+  it('parses image rows: file, mode, masks with optional boxes, tags', () => {
+    const { rows } = parseJsonImport(json)
+    expect(rows[0].status).toBe('ok')
+    expect(rows[0].image).toEqual({
+      file: 'heart.png',
+      mode: 'hideAll',
+      masks: [{ label: 'Left ventricle', box: { x: 0.62, y: 0.55, w: 0.15, h: 0.06 } }, { label: 'Aorta' }],
+      tags: ['לב'],
+      prompt: undefined,
+    })
+    // Image rows are not imported directly: they go through the review screen.
+    expect(rows[0].cards).toEqual([])
+    expect(cardsToImport(rows, false)).toHaveLength(1)
+  })
+
+  it('defaults to hide one, and reads percentage boxes', () => {
+    const { rows } = parseJsonImport(json)
+    expect(rows[1].image?.mode).toBe('hideOne')
+    expect(rows[1].image?.masks[0].box).toEqual({ x: 0.1, y: 0.2, w: 0.3, h: 0.25 })
+  })
+
+  it('drops masks with neither a label nor a usable box', () => {
+    const { rows } = parseJsonImport(json)
+    expect(rows[3].image?.masks).toEqual([])
+    expect(rows[3].note).toMatch(/2 בלי תווית/)
+  })
+
+  it('matches image files by name (no folders, case or Unicode form)', () => {
+    const names = new Set(['heart.png', 'brain.png', 'bad.png'].map(imageKey))
+    const rows = attachImages(parseJsonImport(json).rows, (k) => names.has(k))
+    expect(rows.map((r) => r.status)).toEqual(['ok', 'ok', 'error', 'ok', 'ok'])
+    expect(rows[2].note).toMatch(/missing\.png/)
+    expect(imageKey('photos/Heart.PNG')).toBe('heart.png')
+    expect(imageKey('לב.png'.normalize('NFD'))).toBe('לב.png'.normalize('NFC'))
+    expect(imagesToImport(rows).map((i) => i.file)).toEqual(['heart.png', 'Brain.PNG', 'bad.png'])
+  })
+
+  it('rejects an image without a file name, or with too many masks', () => {
+    const r = parseJsonImport(JSON.stringify([{ type: 'image' }, { type: 'image', image: 'a.png', masks: Array.from({ length: 101 }, (_, i) => ({ label: `L${i}` })) }]))
+    expect(r.rows.map((x) => x.status)).toEqual(['error', 'error'])
+  })
+
+  it('clips boxes to the image and ignores invalid ones', () => {
+    expect(parseBox([0.9, 0.9, 0.5, 0.5])).toEqual({ x: 0.9, y: 0.9, w: expect.closeTo(0.1), h: expect.closeTo(0.1) })
+    expect(parseBox([0.1, 0.1, 0, 0.1])).toBeNull()
+    expect(parseBox([0.1, 0.1, 0.1])).toBeNull()
+    expect(parseBox(['0.1', 0.1, 0.1, 0.1])).toBeNull()
+    expect(parseBox([-0.1, 0.1, 0.1, 0.1])).toBeNull()
   })
 })

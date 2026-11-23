@@ -40,3 +40,19 @@ describe('backup', () => {
     expect(backupFileName(new Date(2026, 10, 11))).toBe('kartisiyot-backup-2026-11-11.json')
   })
 })
+
+describe('image cards in backups', () => {
+  const imageCard = { ...card, type: 'image', imageId: 'i1', maskId: 'm2', masks: [{ id: 'm1', x: 0.1, y: 0.1, w: 0.1, h: 0.1, label: 'A', source: 'ocr' }, { id: 'm2', x: 0.3, y: 0.3, w: 0.1, h: 0.1, label: 'x'.repeat(300), source: 'evil' }] }
+
+  it('keeps a valid source, drops an invalid one, caps labels, and sets maskIndex', () => {
+    const c = cleanCard(imageCard)!
+    expect(c.masks![0].source).toBe('ocr')
+    expect(c.masks![1].source).toBeUndefined()
+    expect(c.masks![1].label).toHaveLength(200)
+    expect(c.maskIndex).toBe(1)
+  })
+
+  it("skips an image card whose own mask isn't in its masks", () => {
+    expect(cleanCard({ ...imageCard, maskId: 'nope' })).toBeNull()
+  })
+})

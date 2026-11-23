@@ -378,6 +378,13 @@ export function useSyncError(): SyncError | null {
   )
 }
 
+/** Image cards store the index of their own mask, which firestore.rules validates. */
+function withMaskIndex<T extends Partial<Card>>(c: T): T {
+  if (!c.masks || !c.maskId) return c
+  const maskIndex = c.masks.findIndex((m) => m.id === c.maskId)
+  return maskIndex >= 0 ? { ...c, maskIndex } : c
+}
+
 export async function addCards(deckId: string, newCards: NewCard[]): Promise<string[]> {
   const now = Date.now()
   const prepared = newCards.map((c, i) => {
@@ -388,7 +395,7 @@ export async function addCards(deckId: string, newCards: NewCard[]): Promise<str
       lapses: 0,
       seenInRound: 0,
       lastRating: null,
-      ...stripId(c as NewCard & { id?: string }),
+      ...stripId(withMaskIndex(c as NewCard & { id?: string })),
       createdAt: now + i, // keeps import order stable
     }
     return { ref, data }
@@ -398,11 +405,11 @@ export async function addCards(deckId: string, newCards: NewCard[]): Promise<str
 }
 
 export async function updateCard(deckId: string, cardId: string, patch: Partial<Card>) {
-  settle(updateDoc(cardDoc(deckId, cardId), stripId(patch)))
+  settle(updateDoc(cardDoc(deckId, cardId), stripId(withMaskIndex(patch))))
 }
 
 export async function updateCards(deckId: string, updates: { id: string; patch: Partial<Card> }[]) {
-  settle(runBatches(updates, (b, u) => b.update(cardDoc(deckId, u.id), stripId(u.patch))))
+  settle(runBatches(updates, (b, u) => b.update(cardDoc(deckId, u.id), stripId(withMaskIndex(u.patch)))))
 }
 
 export async function deleteCards(deckId: string, cardIds: string[]) {

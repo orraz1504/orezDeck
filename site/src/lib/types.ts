@@ -33,6 +33,9 @@ export interface Deck {
   stats?: DeckSummary
 }
 
+/** Where a mask's box came from: text detection, Claude's estimate, or drawn by hand. */
+export type MaskSource = 'ocr' | 'claude' | 'manual'
+
 /** Rectangle in relative image coordinates (0–1). */
 export interface Mask {
   id: string
@@ -40,9 +43,15 @@ export interface Mask {
   y: number
   w: number
   h: number
-  /** The answer shown when this mask is revealed. */
+  /** The answer shown when this mask is revealed (for OCR boxes: the recognised text). */
   label: string
+  /** Missing on masks saved before OCR existed. */
+  source?: MaskSource
 }
+
+/** Limits shared with firestore.rules (validMasks / validMask). */
+export const MAX_MASKS = 100
+export const MAX_LABEL = 200
 
 export interface ProblemStep {
   title: string
@@ -97,6 +106,8 @@ export interface Card extends CardProgress {
   masks?: Mask[]
   /** id of the mask this card asks about */
   maskId?: string
+  /** Index of that mask in `masks` (lets firestore.rules validate it). Missing on older cards. */
+  maskIndex?: number
   occlusionMode?: OcclusionMode
   revealStyle?: RevealStyle
   /** prompt shown above the image, e.g. "מה המבנה המסומן?" */

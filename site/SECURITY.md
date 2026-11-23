@@ -54,7 +54,7 @@ Sorted by severity. "Status" is the state after the fixes in this commit.
 
 ## B. What was changed (Claude Code)
 
-1. **`site/firestore.rules`:** UID allow-list (placeholder in the repo), `hasOnly` field lists, types, string lengths (20,000), array sizes (20 tags, 200 masks, 30 variants), `mastery` int 0–5, all enums. Images are WebP/JPEG data URLs under 950 KB, with valid dimensions, and can't be updated. The user root document is closed. Images can't be listed.
+1. **`site/firestore.rules`:** UID allow-list (placeholder in the repo), `hasOnly` field lists, types, string lengths (20,000), array sizes (20 tags, 100 masks (was 200; see item 13), 30 variants), `mastery` int 0–5, all enums. Images are WebP/JPEG data URLs under 950 KB, with valid dimensions, and can't be updated. The user root document is closed. Images can't be listed.
    - **Deviation from the brief:** timestamps are *not* required to equal `request.time`. Ratings made offline sync later, so that rule would reject them. Instead: an int, after 2020, and at most 10 minutes in the future.
 2. **`site/tests/rules.test.ts` + `vitest.rules.config.ts` + `npm run test:rules`:** emulator tests covering signed out, another user (including on their own path), me, unknown fields, wrong types, out-of-range values, missing fields, oversized docs, future timestamps, SVG and `javascript:` images, immutable images, the append-only review log, and collection-group queries.
 3. **`src/lib/cloze.ts`:** a linear cloze scanner. `RichText.tsx` and `fit.ts` use it, and `cloze.test.ts` includes a ReDoS regression test.
@@ -75,6 +75,10 @@ Sorted by severity. "Status" is the state after the fixes in this commit.
     - Tests for the backup validation.
 11. **`.github/workflows/deploy.yml`, `.github/dependabot.yml`, `.gitignore`, `package.json`:** per-job least-privilege permissions, SHA-pinned actions, a rules-test job, Dependabot, ignore rules, the `@grpc/grpc-js` override, and `@types/katex` removed.
 12. **git config (local):** future commits use the GitHub noreply address.
+13. _Update (automatic image occlusion, Nov 2026):_
+    - **CSP:** `'wasm-unsafe-eval'` added to `script-src` (compiling WebAssembly only; JS `eval` stays blocked) and `worker-src 'self' blob:`. Nothing else was opened. The OCR worker, WebAssembly core and language files are self-hosted under `ocr/`, loaded only when detection is used, and never fetched from a CDN. The worker is loaded from its same-origin URL (`workerBlobURL: false`). Checked in headless Chrome on the production build: no CSP violations, and detection works offline after first use.
+    - **Rules:** masks are validated (`validMask` / `validMasks`): at most 100 per card, only known keys, coordinates 0–1, `label` a string of at most 200 characters, `source` one of `ocr` / `claude` / `manual`. Firestore evaluates at most 1,000 expressions per write and has no loops, which allows a full check of only ~19 masks. So each card fully checks **its own** mask (`masks[maskIndex]`, which must have `id == maskId`); every mask is some card's own mask, so a saved image is checked mask by mask across its cards. These checks run only when masks change, so rating an older card never re-validates them.
+    - **Import:** ZIP files are read with fflate; only `.json` and image entries are inflated, each within its size limit, checked against the ZIP index before inflating (zip-bomb guard). Images still go through the existing type / size / megapixel checks.
 
 ---
 

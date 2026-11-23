@@ -24,6 +24,7 @@ function RequireAuth({ children }: { children: ReactNode }) {
 // Editors and import are loaded on demand to keep the first load small.
 const CardEditorPage = lazy(() => import('./pages/CardEditorPage').then((m) => ({ default: m.CardEditorPage })))
 const OcclusionEditorPage = lazy(() => import('./pages/OcclusionEditorPage').then((m) => ({ default: m.OcclusionEditorPage })))
+const AutoOcclusionPage = lazy(() => import('./pages/AutoOcclusionPage').then((m) => ({ default: m.AutoOcclusionPage })))
 const ImportPage = lazy(() => import('./pages/ImportPage').then((m) => ({ default: m.ImportPage })))
 
 export default function App() {
@@ -54,6 +55,7 @@ export default function App() {
         <Route path="/deck/:deckId/card/new" element={<RequireAuth><CardEditorPage /></RequireAuth>} />
         <Route path="/deck/:deckId/card/:cardId" element={<RequireAuth><CardEditorPage /></RequireAuth>} />
         <Route path="/deck/:deckId/occlusion/:noteId" element={<RequireAuth><OcclusionEditorPage /></RequireAuth>} />
+        <Route path="/deck/:deckId/auto-occlusion" element={<RequireAuth><AutoOcclusionPage /></RequireAuth>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Suspense>

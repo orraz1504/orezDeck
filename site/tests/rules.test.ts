@@ -140,6 +140,7 @@ describe('schema validation', () => {
         maskId: 'm1',
         noteId: 'n2',
         masks: [{ id: 'm1', x: 0.1, y: 0.1, w: 0.2, h: 0.1, label: 'Aorta' }],
+        maskIndex: 0,
         occlusionMode: 'hideAll',
         revealStyle: 'image',
         prompt: 'מה המבנה המסומן?',
@@ -154,6 +155,89 @@ describe('schema validation', () => {
         lastVariant: 0,
       }),
     )
+  })
+})
+
+describe('occlusion masks', () => {
+  beforeEach(() => seed('users/me/decks/d1', deck))
+  const cardRef = () => doc(me(), 'users/me/decks/d1/cards/c1')
+  const mask = (i: number, extra: object = {}) => ({ id: `m${i}`, x: 0.1, y: 0.2, w: 0.15, h: 0.05, label: `Label ${i}`, source: 'ocr', ...extra })
+  const masks = (n: number) => Array.from({ length: n }, (_, i) => mask(i))
+  const imageCard = (list: unknown[], own = 0) => ({
+    ...card,
+    type: 'image',
+    imageId: 'i1',
+    noteId: 'n1',
+    maskId: `m${own}`,
+    maskIndex: own,
+    masks: list,
+    occlusionMode: 'hideOne',
+    revealStyle: 'image',
+  })
+
+  it('accepts label and source (ocr / claude / manual), and masks without them', async () => {
+    await assertSucceeds(setDoc(cardRef(), imageCard([mask(0), mask(1, { source: 'claude' }), mask(2, { source: 'manual' })])))
+    await assertSucceeds(setDoc(cardRef(), imageCard([mask(0, { source: 'claude' })])))
+    await assertSucceeds(setDoc(cardRef(), imageCard([mask(0, { source: 'manual' })])))
+    await assertSucceeds(setDoc(cardRef(), imageCard([{ id: 'm0', x: 0, y: 0, w: 1, h: 1, label: 'Aorta' }])))
+    await assertSucceeds(setDoc(cardRef(), imageCard([{ id: 'm0', x: 0.5, y: 0.5, w: 0.1, h: 0.1 }])))
+  })
+
+  it('accepts up to 100 masks, with 200-character labels', async () => {
+    const list = Array.from({ length: 100 }, (_, i) => mask(i, { label: 'x'.repeat(200) }))
+    await assertSucceeds(setDoc(cardRef(), imageCard(list, 99)))
+    await assertSucceeds(updateDoc(cardRef(), { mastery: 2, lastSeen: now, lastRating: 'good', seenInRound: 1, lastAnswerMs: 3000 }))
+  })
+
+  it('rejects more than 100 masks, and an empty list', async () => {
+    await assertFails(setDoc(cardRef(), imageCard(masks(101))))
+    await assertFails(setDoc(cardRef(), imageCard([])))
+    await assertFails(setDoc(cardRef(), { ...imageCard([]), masks: 'm1' }))
+  })
+
+  it("validates the card's own mask (masks[maskIndex], matching maskId)", async () => {
+    const bad = (m: object) => imageCard([...masks(7), m], 7)
+    await assertFails(setDoc(cardRef(), bad(mask(7, { label: 'x'.repeat(201) }))))
+    await assertFails(setDoc(cardRef(), bad(mask(7, { label: 42 }))))
+    await assertFails(setDoc(cardRef(), bad(mask(7, { source: 'ai' }))))
+    await assertFails(setDoc(cardRef(), bad(mask(7, { source: null }))))
+    await assertFails(setDoc(cardRef(), bad(mask(7, { evil: '<img>' }))))
+    await assertFails(setDoc(cardRef(), bad(mask(7, { x: 1.5 }))))
+    await assertFails(setDoc(cardRef(), bad(mask(7, { w: -0.1 }))))
+    await assertFails(setDoc(cardRef(), bad(mask(7, { h: '0.1' }))))
+    await assertFails(setDoc(cardRef(), bad({ id: 'm7', x: 0.1, y: 0.1, w: 0.1 })))
+    await assertFails(setDoc(cardRef(), bad('not a mask')))
+    // maskIndex must exist, be in range and point at maskId.
+    await assertFails(setDoc(cardRef(), { ...imageCard(masks(3), 1), maskIndex: 2 }))
+    await assertFails(setDoc(cardRef(), { ...imageCard(masks(3), 1), maskIndex: 3 }))
+    await assertFails(setDoc(cardRef(), { ...imageCard(masks(3), 1), maskIndex: -1 }))
+    await assertFails(setDoc(cardRef(), { ...imageCard(masks(3), 1), maskIndex: '1' }))
+    const noIndex: Record<string, unknown> = imageCard(masks(3), 1)
+    delete noIndex.maskIndex
+    await assertFails(setDoc(cardRef(), noIndex))
+  })
+
+  it('every mask of a saved image is checked by the card that asks about it', async () => {
+    const list = [mask(0), mask(1, { label: 'x'.repeat(201) }), mask(2)]
+    await assertSucceeds(setDoc(doc(me(), 'users/me/decks/d1/cards/a'), imageCard(list, 0)))
+    await assertFails(setDoc(doc(me(), 'users/me/decks/d1/cards/b'), imageCard(list, 1)))
+  })
+
+  it('editing masks re-validates them; ratings do not touch them', async () => {
+    await assertSucceeds(setDoc(cardRef(), imageCard(masks(3), 1)))
+    await assertSucceeds(updateDoc(cardRef(), { masks: [mask(0), mask(1, { label: 'Left ventricle', source: 'manual' })] }))
+    await assertFails(updateDoc(cardRef(), { masks: [mask(0), mask(1, { label: 'x'.repeat(201) })] }))
+    await assertFails(updateDoc(cardRef(), { maskIndex: 0 }))
+  })
+
+  it('older image cards (no maskIndex, no source) can still be rated', async () => {
+    const legacy = { ...card, type: 'image', imageId: 'i1', maskId: 'm1', masks: [{ id: 'm1', x: 0.1, y: 0.1, w: 0.2, h: 0.1, label: 'Aorta' }] }
+    await seed('users/me/decks/d1/cards/old', legacy)
+    const ref = doc(me(), 'users/me/decks/d1/cards/old')
+    await assertSucceeds(updateDoc(ref, { mastery: 1, lastSeen: now, lastRating: 'good', seenInRound: 1 }))
+    // Changing its masks requires the new format.
+    await assertFails(updateDoc(ref, { masks: [{ id: 'm1', x: 0.2, y: 0.1, w: 0.2, h: 0.1, label: 'Aorta' }] }))
+    await assertSucceeds(updateDoc(ref, { masks: [{ id: 'm1', x: 0.2, y: 0.1, w: 0.2, h: 0.1, label: 'Aorta', source: 'manual' }], maskIndex: 0 }))
   })
 })
 

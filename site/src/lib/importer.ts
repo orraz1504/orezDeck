@@ -5,7 +5,9 @@
  * Produces rows with a status (ok / error / duplicate) for the preview.
  */
 import { clozeIndices, clozePlain } from './cloze'
-import type { Card, ProblemStep, ProblemVariant } from './types'
+import type { RelBox } from './ocr/labels'
+import type { WantedMask } from './ocr/snap'
+import { MAX_LABEL, MAX_MASKS, type Card, type OcclusionMode, type ProblemStep, type ProblemVariant } from './types'
 
 export type RowStatus = 'ok' | 'error' | 'dup'
 
@@ -26,6 +28,18 @@ export interface ImportRow {
   cards: ImportCard[]
   /** normalized text used for duplicate detection */
   key: string
+  /** Image cards: created after the review screen, not directly. */
+  image?: ImageImport
+}
+
+/** An image card from Claude: which labels to hide; OCR finds where they are. */
+export interface ImageImport {
+  /** File name as written in the JSON */
+  file: string
+  mode: OcclusionMode
+  masks: WantedMask[]
+  tags: string[]
+  prompt?: string
 }
 
 /* ───────────────────────── Limits ───────────────────────── */
@@ -44,6 +58,7 @@ const KNOWN_FIELDS: Record<string, string[]> = {
   basic: ['type', 'front', 'back', 'question', 'answer', 'tags'],
   cloze: ['type', 'text', 'front', 'back', 'note', 'extra', 'tags'],
   problem: ['type', 'group', 'front', 'title', 'tags', 'variants', 'question', 'back', 'answer', 'solution', 'steps'],
+  image: ['type', 'image', 'mode', 'masks', 'tags', 'prompt'],
 }
 
 /** Rejects rows whose card content is over the limits. */
@@ -210,6 +225,65 @@ function problemRow(index: number, item: Record<string, unknown>, tags: string[]
   return row
 }
 
+/* ───────────────────────── Image cards ───────────────────────── */
+
+/** File names are matched without folders, case or Unicode form (macOS stores Hebrew names decomposed). */
+export function imageKey(name: string): string {
+  return name.split(/[\\/]/).pop()!.normalize('NFC').trim().toLowerCase()
+}
+
+const MODES: Record<string, OcclusionMode> = { hide_one: 'hideOne', hideone: 'hideOne', 'hide-one': 'hideOne', hide_all: 'hideAll', hideall: 'hideAll', 'hide-all': 'hideAll' }
+
+/** [x, y, w, h] in 0–1, clipped to the image; null when it isn't a usable box. */
+export function parseBox(v: unknown): RelBox | null {
+  if (!Array.isArray(v) || v.length !== 4 || !v.every((n) => typeof n === 'number' && Number.isFinite(n))) return null
+  let [x, y, w, h] = v as number[]
+  // Percentages (0–100) instead of fractions.
+  if (v.some((n) => n > 1) && v.every((n) => n >= 0 && n <= 100)) [x, y, w, h] = [x / 100, y / 100, w / 100, h / 100]
+  if (w <= 0 || h <= 0 || x < 0 || y < 0 || x >= 1 || y >= 1) return null
+  return { x, y, w: Math.min(w, 1 - x), h: Math.min(h, 1 - y) }
+}
+
+function imageRow(index: number, item: Record<string, unknown>, tags: string[]): ImportRow {
+  const file = typeof item.image === 'string' ? item.image.trim().slice(0, 300) : ''
+  const row: ImportRow = { index, type: 'image', front: file || 'תמונה', back: '', tags, status: 'ok', cards: [], key: '' }
+  if (!file) return { ...row, status: 'error', note: 'חסר שם קובץ תמונה ("image")' }
+  const modeRaw = typeof item.mode === 'string' ? item.mode.trim().toLowerCase() : ''
+  const mode = MODES[modeRaw] ?? 'hideOne'
+  const rawMasks = Array.isArray(item.masks) ? item.masks : []
+  const masks: WantedMask[] = []
+  let dropped = 0
+  for (const m of rawMasks) {
+    const o = m && typeof m === 'object' ? (m as Record<string, unknown>) : {}
+    const label = typeof o.label === 'string' ? o.label.trim().slice(0, MAX_LABEL) : typeof m === 'string' ? m.trim().slice(0, MAX_LABEL) : ''
+    const box = parseBox(o.box)
+    if (!label && !box) dropped++
+    else masks.push(box ? { label, box } : { label })
+  }
+  if (masks.length > MAX_MASKS) return { ...row, status: 'error', note: `יותר מ-${MAX_MASKS} מלבנים בתמונה אחת` }
+  const prompt = typeof item.prompt === 'string' ? item.prompt.trim().slice(0, 500) : undefined
+  const notes = [masks.length ? `${masks.length} תוויות` : 'כל התוויות שיזוהו', dropped ? `${dropped} בלי תווית ובלי box הושמטו` : '']
+  return {
+    ...row,
+    back: masks.map((m) => m.label).filter(Boolean).join(', '),
+    note: notes.filter(Boolean).join(' · '),
+    image: { file, mode, masks, tags, prompt: prompt || undefined },
+  }
+}
+
+/** Marks image rows whose file wasn't selected. */
+export function attachImages(rows: ImportRow[], has: (key: string) => boolean): ImportRow[] {
+  return rows.map((r) =>
+    r.image && r.status === 'ok' && !has(imageKey(r.image.file))
+      ? { ...r, status: 'error', note: `חסר הקובץ ${r.image.file}. בחרו אותו יחד עם ה-JSON.` }
+      : r,
+  )
+}
+
+export function imagesToImport(rows: ImportRow[]): ImageImport[] {
+  return rows.filter((r) => r.status === 'ok' && r.image).map((r) => r.image!)
+}
+
 /* ───────────────────────── JSON ───────────────────────── */
 
 export interface ParseResult {
@@ -272,7 +346,7 @@ function buildRow(index: number, type: string, item: Record<string, unknown>, ta
       case 'problem':
         return problemRow(index, item, tags)
       case 'image':
-        return { index, type: 'image', front: clean(item.front) || 'תמונה', back: '', tags, status: 'error', note: 'כרטיסי תמונה נוצרים בעורך ההסתרה', cards: [], key: '' }
+        return imageRow(index, item, tags)
       default:
         return { index, type: null, front: clean(item.front ?? item.text), back: '', tags, status: 'error', note: `סוג לא מוכר: ${type}`.slice(0, 80), cards: [], key: '' }
     }

@@ -98,3 +98,13 @@ export async function compressImage(blob: Blob): Promise<CompressedImage> {
   }
   throw new Error('התמונה גדולה מדי גם אחרי דחיסה')
 }
+
+/** data:…;base64 URL → Blob (without fetch(), which the CSP's connect-src would block). */
+export function dataUrlToBlob(dataUrl: string): Blob {
+  const comma = dataUrl.indexOf(',')
+  const type = dataUrl.slice(5, dataUrl.indexOf(';')) || 'application/octet-stream'
+  const bin = atob(dataUrl.slice(comma + 1))
+  const bytes = new Uint8Array(bin.length)
+  for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i)
+  return new Blob([bytes], { type })
+}

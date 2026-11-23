@@ -17,11 +17,17 @@ interface Props {
   tool?: CanvasTool
   /** Called once at the start of every edit gesture (draw / move / resize), for undo. */
   onGestureStart?: () => void
+  /** A box was tapped without moving it (review screen: include / exclude). */
+  onTap?: (id: string) => void
+  /** Extra class per box (excluded, needs review…). */
+  rectClass?: (m: Mask) => string | undefined
+  /** No new boxes beyond this. */
+  maxMasks?: number
 }
 
 type Drag =
   | { kind: 'draw'; id: string; x0: number; y0: number; before: Mask[] }
-  | { kind: 'move'; id: string; dx: number; dy: number }
+  | { kind: 'move'; id: string; dx: number; dy: number; sx: number; sy: number; moved: boolean }
   | { kind: 'resize'; id: string; corner: 'nw' | 'ne' | 'sw' | 'se'; orig: Mask }
   | { kind: 'pan'; sx: number; sy: number; v0: View }
 
@@ -41,7 +47,10 @@ const clamp = (v: number, lo = 0, hi = 1) => Math.max(lo, Math.min(hi, v))
  * Two fingers (or Ctrl + wheel / trackpad pinch) zoom and pan the image; a second
  * finger during a drag cancels that drag, so zooming never leaves a stray rectangle.
  */
-export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelect, onChange, newMaskId, caption, tool = 'draw', onGestureStart }: Props) {
+/** A pointer that moves less than this (px) is a tap, not a drag. */
+const TAP_SLOP = 6
+
+export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelect, onChange, newMaskId, caption, tool = 'draw', onGestureStart, onTap, rectClass, maxMasks }: Props) {
   const frameRef = useRef<HTMLDivElement>(null)
   const layerRef = useRef<HTMLDivElement>(null)
   const [drag, setDrag] = useState<Drag | null>(null)
@@ -113,6 +122,11 @@ export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelec
       if (drag.kind === 'draw') {
         patch(drag.id, { x: Math.min(x, drag.x0), y: Math.min(y, drag.y0), w: Math.abs(x - drag.x0), h: Math.abs(y - drag.y0) })
       } else if (drag.kind === 'move') {
+        if (!drag.moved) {
+          if (Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy) < TAP_SLOP) return
+          drag.moved = true
+          onGestureStart?.()
+        }
         const m = masksRef.current.find((k) => k.id === drag.id)
         if (m) patch(drag.id, { x: clamp(x - drag.dx, 0, 1 - m.w), y: clamp(y - drag.dy, 0, 1 - m.h) })
       } else {
@@ -128,7 +142,9 @@ export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelec
         patch(drag.id, { x: x1, y: y1, w: x2 - x1, h: y2 - y1 })
       }
     }
-    const up = () => {
+    const up = (e: PointerEvent) => {
+      // pointercancel = the browser took the gesture (scroll / zoom): not a tap.
+      if (drag.kind === 'move' && !drag.moved && e.type === 'pointerup') onTap?.(drag.id)
       if (drag.kind === 'draw') {
         // A label field left focused keeps the phone keyboard open; close it once the box is drawn
         // (not at the start, which would resize the page under the finger).
@@ -193,11 +209,12 @@ export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelec
       return
     }
     e.preventDefault()
+    if (maxMasks !== undefined && masks.length >= maxMasks) return
     onGestureStart?.()
     const { x, y } = pos(e)
     const id = newMaskId()
     const before = masks
-    onChange([...masks, { id, x, y, w: 0, h: 0, label: '' }])
+    onChange([...masks, { id, x, y, w: 0, h: 0, label: '', source: 'manual' }])
     onSelect(id)
     setDrag({ kind: 'draw', id, x0: x, y0: y, before })
   }
@@ -206,10 +223,10 @@ export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelec
     if (pinch.current || pointers.current.size > 1) return
     e.stopPropagation()
     e.preventDefault()
-    onGestureStart?.()
     const { x, y } = pos(e)
     onSelect(m.id)
-    setDrag({ kind: 'move', id: m.id, dx: x - m.x, dy: y - m.y })
+    // Undo checkpoint only once it really moves (a tap changes nothing here).
+    setDrag({ kind: 'move', id: m.id, dx: x - m.x, dy: y - m.y, sx: e.clientX, sy: e.clientY, moved: false })
   }
 
   const startResize = (e: ReactPointerEvent, m: Mask, corner: 'nw' | 'ne' | 'sw' | 'se') => {
@@ -251,11 +268,11 @@ export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelec
             return (
               <div
                 key={m.id}
-                className={`occ-rect ${sel ? 'occ-rect--selected' : ''}`}
+                className={`occ-rect ${sel ? 'occ-rect--selected' : ''} ${rectClass?.(m) ?? ''}`}
                 style={{ left: `${m.x * 100}%`, top: `${m.y * 100}%`, width: `${m.w * 100}%`, height: `${m.h * 100}%` }}
                 onPointerDown={(e) => startMove(e, m)}
               >
-                {i + 1}
+                <span className="occ-rect__num">{i + 1}</span>
               </div>
             )
           })}

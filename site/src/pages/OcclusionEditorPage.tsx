@@ -2,11 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { Icon } from '../components/Icon'
 import { OcclusionCanvas, type CanvasTool } from '../components/OcclusionCanvas'
-import { Button, Field, IconButton, Spinner, Kbd, ModeCard, Segmented, TagInput } from '../components/ui'
+import { OcrReview, type ReviewDraft } from '../components/OcrReview'
+import { Button, Field, IconButton, Spinner, Kbd, ModeCard, ProgressBar, Segmented, TagInput } from '../components/ui'
 import { applyNotePlan, deleteCards, deleteImages, newId, saveImage, useCards, useDeck, useDecks, useImage } from '../data/store'
-import { ALLOWED_IMAGE_TYPES, compressImage, dataUrlBytes, type CompressedImage } from '../lib/image'
+import { ALLOWED_IMAGE_TYPES, compressImage, dataUrlBytes, dataUrlToBlob, type CompressedImage } from '../lib/image'
+import { overlapRatio } from '../lib/ocr/labels'
+import { finalMasks, masksFromDetected } from '../lib/ocr/review'
 import { planOcclusionNote, resetLeechOnEdit } from '../lib/notes'
-import type { Mask, OcclusionMode, RevealStyle } from '../lib/types'
+import { MAX_LABEL, MAX_MASKS, type Mask, type OcclusionMode, type RevealStyle } from '../lib/types'
 import { useIsDesktop, useMedia } from '../lib/useMedia'
 import { goBack, returnPath } from '../lib/nav'
 
@@ -43,6 +46,12 @@ function OcclusionEditor() {
   const [imageId] = useState<string | null>(first?.imageId ?? null)
   /** Newly picked image, compressed, not saved yet. */
   const [pending, setPending] = useState<CompressedImage | null>(null)
+  /** The picked file before compression: OCR reads it at full quality. */
+  const [pendingOriginal, setPendingOriginal] = useState<Blob | null>(null)
+  /** "Auto-detect labels": running, or reviewing the result over the editor. */
+  const [ocr, setOcr] = useState<
+    { phase: 'working'; progress: number; loading: boolean } | { phase: 'review'; draft: ReviewDraft; error?: string } | null
+  >(null)
   const [compressing, setCompressing] = useState(false)
   const [imageError, setImageError] = useState<string | null>(null)
   const [masks, setMasks] = useState<Mask[]>(first?.masks ?? [])
@@ -99,6 +108,7 @@ function OcclusionEditor() {
     setImageError(null)
     try {
       setPending(await compressImage(file))
+      setPendingOriginal(file)
     } catch (e) {
       setImageError(e instanceof Error ? e.message : 'לא הצלחתי לקרוא את התמונה')
     } finally {
@@ -124,9 +134,12 @@ function OcclusionEditor() {
     }
   }
 
-  // Paste from clipboard (Ctrl+V)
+  // Paste from clipboard (Ctrl+V) — not while reviewing detected labels.
+  const ocrOpen = useRef(false)
+  ocrOpen.current = !!ocr
   useEffect(() => {
     const onPaste = (e: ClipboardEvent) => {
+      if (ocrOpen.current) return
       const item = [...(e.clipboardData?.items ?? [])].find((i) => i.type.startsWith('image/'))
       if (item) {
         e.preventDefault()
@@ -140,6 +153,7 @@ function OcclusionEditor() {
   // Delete / Backspace removes the selected rectangle, Ctrl/Cmd+Z undoes (when not typing)
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      if (ocr) return // the review overlay handles its own keys
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return
       if ((e.key === 'Delete' || e.key === 'Backspace') && selected) removeMask(selected)
       else if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') {
@@ -161,12 +175,82 @@ function OcclusionEditor() {
     if (input && !input.value) input.focus({ preventScroll: true })
   }, [selected, masks.length, desktop, needsLabelsNow])
 
+  /** OCR the image (the original file when there is one) and review the boxes before adding them. */
+  const detect = async () => {
+    const blob = pendingOriginal ?? (src ? dataUrlToBlob(src) : null)
+    if (!blob) return
+    setOcr({ phase: 'working', progress: 0, loading: true })
+    try {
+      const { detectLabels } = await import('../lib/ocr/detect')
+      let last = -1
+      const det = await detectLabels(blob, (f, stage) => {
+        if (Math.round(f * 100) === last) return
+        last = Math.round(f * 100)
+        setOcr({ phase: 'working', progress: f, loading: stage === 'load' })
+      })
+      // Labels already covered by a rectangle aren't offered again.
+      const fresh = det.labels.filter((d) => !masks.some((m) => overlapRatio(m, d) > 0.5))
+      setOcr({ phase: 'review', draft: { masks: masksFromDetected(fresh, () => 'm' + newId().slice(0, 8)), mode, tags } })
+    } catch (e) {
+      console.error('OCR failed', e)
+      setOcr(null)
+      setImageError(navigator.onLine ? 'הזיהוי האוטומטי נכשל.' : 'אין חיבור, ומנוע הזיהוי עוד לא נשמר במכשיר.')
+    }
+  }
+
+  const addDetected = (draft: ReviewDraft) => {
+    const add = finalMasks(draft.masks)
+    if (add.length) {
+      checkpoint()
+      setMasks((ms) => [...ms, ...add].slice(0, MAX_MASKS))
+    }
+    setOcr(null)
+  }
+
+  const detectButton = (label = 'זיהוי תוויות אוטומטי') => (
+    <Button size="sm" icon="search" style={{ height: desktop ? 36 : 44 }} disabled={!src || !!ocr} onClick={detect}>
+      {label}
+    </Button>
+  )
+
+  const ocrOverlay =
+    ocr?.phase === 'working' ? (
+      <div className="ocr-overlay stack" style={{ justifyContent: 'center', padding: 24 }}>
+        <div className="panel panel--md stack" style={{ padding: 20, gap: 12, maxWidth: 480, width: '100%', margin: '0 auto' }} aria-live="polite">
+          <div style={{ fontWeight: 600 }}>זיהוי תוויות…</div>
+          <ProgressBar value={Math.round(ocr.progress * 100)} total={100} />
+          <div className="row" style={{ justifyContent: 'space-between', fontSize: 13.5 }}>
+            <span className="muted">{ocr.loading ? 'טוען את מנוע הזיהוי (בפעם הראשונה בלבד)…' : 'מזהה טקסט…'}</span>
+            <span className="num faint">{Math.round(ocr.progress * 100)}%</span>
+          </div>
+        </div>
+      </div>
+    ) : ocr?.phase === 'review' ? (
+      <div className="ocr-overlay">
+        <OcrReview
+          src={src}
+          width={dims?.w}
+          height={dims?.h}
+          draft={ocr.draft}
+          onChange={(draft) => setOcr({ ...ocr, draft })}
+          title="תוויות שזוהו"
+          onBack={() => setOcr(null)}
+          backLabel="ביטול"
+          compact
+          existing={masks.length}
+          primaryLabel={(n) => (n ? `הוספת ${n} מלבנים` : 'לא נבחרו מלבנים')}
+          onPrimary={() => addDetected(ocr.draft)}
+        />
+      </div>
+    ) : null
+
   const selectedMask = masks.find((m) => m.id === selected)
   const labeled = masks.filter((m) => m.label.trim())
   const unlabeled = masks.length - labeled.length
   // Labels are required only when the answer side shows the typed text.
   const needsLabels = revealStyle === 'label'
-  const valid = hasImage && masks.length > 0 && (!needsLabels || unlabeled === 0)
+  const tooMany = masks.length > MAX_MASKS
+  const valid = hasImage && masks.length > 0 && !tooMany && (!needsLabels || unlabeled === 0)
 
   const save = async () => {
     if (!valid) return
@@ -179,7 +263,7 @@ function OcclusionEditor() {
       deckId,
       resetLeechOnEdit(planOcclusionNote(siblings, noteId, {
         imageId: finalImageId,
-        masks: masks.map((m) => ({ ...m, label: m.label.trim() })),
+        masks: masks.map((m) => ({ ...m, label: m.label.trim().slice(0, MAX_LABEL), source: m.source ?? 'manual' })),
         occlusionMode: mode,
         revealStyle,
         prompt: prompt.trim(),
@@ -215,6 +299,7 @@ function OcclusionEditor() {
       onChange={setMasks}
       tool={desktop ? 'draw' : tool}
       onGestureStart={checkpoint}
+      maxMasks={MAX_MASKS}
       newMaskId={() => 'm' + newId().slice(0, 8)}
       caption={src ? undefined : stored.loading ? 'טוען תמונה…' : 'תמונה לדוגמה'}
     />
@@ -244,6 +329,11 @@ function OcclusionEditor() {
     <>
       {canvasEl}
       {imageError && <div style={{ color: 'var(--again)', fontSize: 14 }}>{imageError}</div>}
+      {masks.length >= MAX_MASKS && (
+        <div style={{ color: 'var(--again)', fontSize: 14 }}>
+          {tooMany ? `יותר מ-${MAX_MASKS} מלבנים. מחקו ${masks.length - MAX_MASKS} כדי לשמור.` : `הגעתם למקסימום של ${MAX_MASKS} מלבנים לתמונה.`}
+        </div>
+      )}
       {pending && (
         <div className="faint" style={{ fontSize: 12.5 }}>
           <span className="num">
@@ -273,6 +363,7 @@ function OcclusionEditor() {
             autoComplete="off"
             style={{ minHeight: 44, border: 'none', background: 'transparent', padding: '0 4px', fontSize: 16 }}
             value={m.label}
+            maxLength={MAX_LABEL}
             placeholder={needsLabels ? 'מה מוסתר כאן?' : 'תווית (לא חובה)'}
             onFocus={() => setSelected(m.id)}
             onBlur={endLabel}
@@ -324,6 +415,7 @@ function OcclusionEditor() {
   return (
     <div className="stack" style={{ minHeight: '100dvh' }}>
       {fileInput}
+      {ocrOverlay}
 
       {/* ─────────── Mobile ─────────── */}
       {!desktop && (
@@ -386,6 +478,7 @@ function OcclusionEditor() {
                 enterKeyHint="done"
                 autoComplete="off"
                 value={selectedMask.label}
+                maxLength={MAX_LABEL}
                 placeholder={needsLabels ? 'מה מוסתר כאן?' : 'תווית (לא חובה)'}
                 onBlur={endLabel}
                 onChange={(e) => setLabel(selectedMask.id, e.target.value)}
@@ -394,7 +487,8 @@ function OcclusionEditor() {
             </div>
           )}
           {hasImage && (
-            <div className="row" style={{ gap: 6 }}>
+            <div className="row" style={{ gap: 6, flexWrap: 'wrap' }}>
+              {detectButton()}
               <Button className="spacer" icon="image" onClick={() => fileRef.current?.click()} style={{ fontSize: 14 }}>
                 החלפת תמונה
               </Button>
@@ -452,6 +546,7 @@ function OcclusionEditor() {
               <span className="btn btn--secondary btn--sm" style={{ height: 36 }}>
                 הדבקה <Kbd>Ctrl+V</Kbd>
               </span>
+              {hasImage && detectButton()}
               <Button size="sm" variant="ghost" style={{ height: 36 }} disabled={!selected} onClick={() => removeMask(selected)}>
                 מחיקת מלבן
               </Button>

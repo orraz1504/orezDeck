@@ -3,7 +3,7 @@
  * A backup is untrusted input on restore: only known fields with the right
  * types and sizes survive (same limits as firestore.rules).
  */
-import type { Card, Deck, Mask, ProblemVariant, StoredImage } from './types'
+import { MAX_LABEL, MAX_MASKS, type Card, type Deck, type Mask, type ProblemVariant, type StoredImage } from './types'
 
 export const BACKUP_APP = 'kartisiyot'
 export const BACKUP_VERSION = 1
@@ -39,7 +39,7 @@ const time = (v: unknown) => int(v, 0, 9_999_999_999_999)
 const oneOf = <T extends string>(v: unknown, opts: readonly T[]) => (opts.includes(v as T) ? (v as T) : undefined)
 
 function cleanMasks(v: unknown): Mask[] | undefined {
-  if (!Array.isArray(v) || v.length > 200) return undefined
+  if (!Array.isArray(v) || v.length > MAX_MASKS) return undefined
   const out: Mask[] = []
   for (const m of v) {
     if (!isObj(m)) return undefined
@@ -47,7 +47,8 @@ function cleanMasks(v: unknown): Mask[] | undefined {
     const id = str(m.id, 100)
     const [x, y, w, h] = [n('x'), n('y'), n('w'), n('h')]
     if (!id || x === undefined || y === undefined || w === undefined || h === undefined) return undefined
-    out.push({ id, x, y, w, h, label: str(m.label, 500) ?? '' })
+    const source = oneOf(m.source, ['ocr', 'claude', 'manual'] as const)
+    out.push({ id, x, y, w, h, label: typeof m.label === 'string' ? m.label.slice(0, MAX_LABEL) : '', ...(source ? { source } : {}) })
   }
   return out
 }
@@ -108,6 +109,11 @@ export function cleanCard(raw: unknown): Omit<Card, 'id'> | null {
     const masks = cleanMasks(raw.masks)
     if (!masks) return null
     card.masks = masks
+    if (card.maskId !== undefined) {
+      const i = masks.findIndex((m) => m.id === card.maskId)
+      if (i < 0) return null
+      card.maskIndex = i
+    }
   }
   if (raw.variants !== undefined) {
     const variants = cleanVariants(raw.variants)

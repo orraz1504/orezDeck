@@ -101,7 +101,8 @@ function ImageFace({ card, revealed }: { card: Card; revealed: boolean }) {
           <div style={{ width: `min(100%, calc((100dvh - 80px) * ${aspect}))` }}>{image}</div>
         </ZoomViewer>
       )}
-      {revealed && target?.label && (card.revealStyle !== 'image' || !img.src) && (
+      {/* The label (typed, or the text OCR recognised) under the image, for both reveal styles. */}
+      {revealed && target?.label && (
         <div style={{ fontSize: 16, padding: '0 6px' }} dir="auto">
           <bdi>{target.label}</bdi>
         </div>

@@ -16,10 +16,14 @@ const AUTH_DOMAIN = 'orezdeck.firebaseapp.com'
  * (which means frame-ancestors / report-uri aren't available).
  * No 'unsafe-eval' and no inline scripts. 'unsafe-inline' is needed for *styles*
  * only: React style attributes and MathLive's injected stylesheets.
+ * OCR (Tesseract, self-hosted under ocr/) needs a Web Worker and WebAssembly:
+ * 'wasm-unsafe-eval' allows compiling WebAssembly only (not JS eval), and worker-src
+ * allows workers from this site (plus blob:, which Tesseract.js can use for its worker).
  */
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' https://apis.google.com",
+  "script-src 'self' 'wasm-unsafe-eval' https://apis.google.com",
+  "worker-src 'self' blob:",
   "style-src 'self' 'unsafe-inline'",
   "font-src 'self' data:",
   "img-src 'self' data: blob: https://*.googleusercontent.com",
@@ -68,6 +72,8 @@ function serviceWorker(): Plugin {
         !f.endsWith('.map') &&
         !/\.(woff|ttf)$/.test(f) &&
         !(f.endsWith('.woff2') && /(cyrillic|greek|vietnamese)/.test(f)) &&
+        // OCR files (~6 MB) load only when used; the service worker caches them then.
+        !f.startsWith('ocr/') &&
         f !== 'sw.js'
       const files = [
         'index.html',
@@ -85,8 +91,17 @@ function serviceWorker(): Plugin {
   }
 }
 
+/** Self-hosted OCR folders (see scripts/copy-ocr.mjs); named by version so caches never go stale. */
+const pkgVersion = (name: string) => JSON.parse(readFileSync(`node_modules/${name}/package.json`, 'utf8')).version as string
+const OCR_PATHS = {
+  worker: `ocr/tesseract-${pkgVersion('tesseract.js')}/worker.min.js`,
+  core: `ocr/core-${pkgVersion('tesseract.js-core')}/`,
+  lang: 'ocr/lang-fast-4.1/',
+}
+
 export default defineConfig({
   base: `/${REPO_NAME}/`,
+  define: { __OCR_PATHS__: JSON.stringify(OCR_PATHS) },
   plugins: [react(), securityHeaders(), serviceWorker()],
   build: {
     // Firebase + KaTeX make the main chunk ~1 MB raw (~300 KB gzipped); that's expected.

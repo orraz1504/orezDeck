@@ -45,9 +45,43 @@ service cloud.firestore {
         && (!('stats' in d) || validStats(d.stats));
     }
 
+    // ===== Image occlusion masks =====
+    // A card stores every mask of its image (relative 0–1 boxes) and asks about one: masks[maskIndex],
+    // whose id is maskId. Firestore evaluates at most 1000 expressions per write and has no loops,
+    // so checking every mask fully would cap an image at ~19 masks. Instead each card fully checks
+    // its OWN mask, and every mask is the own mask of one card, so a saved image is checked mask by
+    // mask across its cards. The count is checked on the whole list (max 100, = MAX_MASKS in
+    // src/lib/types.ts). All of this runs only when masks change, not on every rating.
+    function validMask(m) {
+      return m.keys().hasOnly(['id', 'x', 'y', 'w', 'h', 'label', 'source'])
+        && m.keys().hasAll(['id', 'x', 'y', 'w', 'h'])
+        && m.x is number && m.x >= 0 && m.x <= 1
+        && m.y is number && m.y >= 0 && m.y <= 1
+        && m.w is number && m.w >= 0 && m.w <= 1
+        && m.h is number && m.h >= 0 && m.h <= 1
+        && (!('label' in m) || str(m.label, 200))
+        && (!('source' in m) || m.source in ['ocr', 'claude', 'manual']);
+    }
+
+    function validMasks(d) {
+      return d.masks is list && d.masks.size() >= 1 && d.masks.size() <= 100
+        && d.maskIndex is int && d.maskIndex >= 0 && d.maskIndex < d.masks.size()
+        && d.maskId is string && d.masks[d.maskIndex].id == d.maskId
+        && validMask(d.masks[d.maskIndex]);
+    }
+
+    // Masks changed (or a new card)? Then they must be valid. Ratings leave them alone.
+    function masksOk(d) {
+      return !('masks' in d)
+        || (resource != null && 'masks' in resource.data && d.masks == resource.data.masks
+            && d.get('maskIndex', null) == resource.data.get('maskIndex', null)
+            && d.get('maskId', null) == resource.data.get('maskId', null))
+        || validMasks(d);
+    }
+
     function validCard(d) {
       return d.keys().hasOnly(['type', 'tags', 'createdAt', 'noteId', 'front', 'back', 'text', 'clozeIndex',
-            'imageId', 'masks', 'maskId', 'occlusionMode', 'revealStyle', 'prompt', 'group', 'variants',
+            'imageId', 'masks', 'maskId', 'maskIndex', 'occlusionMode', 'revealStyle', 'prompt', 'group', 'variants',
             'lastVariant', 'mastery', 'lastSeen', 'lapses', 'seenInRound', 'lastRating',
             'lapsesSinceEdit', 'lastAnswerMs'])
         && d.keys().hasAll(['type', 'tags', 'createdAt', 'mastery', 'lapses', 'seenInRound'])
@@ -67,7 +101,7 @@ service cloud.firestore {
         && optStr(d, 'prompt', 500) && optStr(d, 'group', 200)
         && (!('clozeIndex' in d) || (d.clozeIndex is int && d.clozeIndex >= 1 && d.clozeIndex <= 500))
         && (!('lastVariant' in d) || (d.lastVariant is int && d.lastVariant >= 0 && d.lastVariant < 100))
-        && (!('masks' in d) || (d.masks is list && d.masks.size() <= 200))
+        && masksOk(d)
         && (!('variants' in d) || (d.variants is list && d.variants.size() <= 30))
         && (!('occlusionMode' in d) || d.occlusionMode in ['hideOne', 'hideAll'])
         && (!('revealStyle' in d) || d.revealStyle in ['label', 'image']);

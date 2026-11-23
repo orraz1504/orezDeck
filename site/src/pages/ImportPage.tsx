@@ -2,13 +2,19 @@ import { useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import promptText from '../../docs/claude-import-prompt.md?raw'
 import { Icon } from '../components/Icon'
+import { ImageQueue, QueueDone } from '../components/ImageQueue'
+import { queueItem, type QueueItem } from '../components/queueItem'
 import { RichText } from '../components/RichText'
 import { Button, Checkbox, Field, IconButton, Spinner, Tabs, useToast } from '../components/ui'
 import { addCards, createDeck, useCards, useDecks, type NewCard } from '../data/store'
 import { n } from '../lib/format'
+import { readPickedFiles, type PickedFiles } from '../lib/importFiles'
 import {
+  attachImages,
   cardKey,
   cardsToImport,
+  imageKey,
+  imagesToImport,
   MAX_IMPORT_BYTES,
   guessMapping,
   looksLikeHeader,
@@ -59,6 +65,11 @@ export function ImportPage() {
   const [onlyProblems, setOnlyProblems] = useState(false)
   const [busy, setBusy] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const jsonFilesRef = useRef<HTMLInputElement>(null)
+  /** JSON + diagram images picked together (or in a ZIP). */
+  const [picked, setPicked] = useState<PickedFiles | null>(null)
+  /** After the text cards are in: image cards go through the review screens. */
+  const [review, setReview] = useState<{ deckId: string; items: QueueItem[]; done: boolean } | null>(null)
 
   // Default target: the route's deck, else the first deck, else a new deck.
   const effectiveTarget = target || (decks.length ? decks[0].id : NEW_DECK)
@@ -75,15 +86,16 @@ export function ImportPage() {
   const cols = mapping ?? (table ? guessMapping(table, header) : [])
 
   const parsedRows: ImportRow[] = useMemo(() => {
-    if (source === 'json') return json?.rows ?? []
+    if (source === 'json') return attachImages(json?.rows ?? [], (k) => !!picked?.images.has(k))
     if (!table) return []
     return tableToRows(table, cols, header)
-  }, [source, json, table, cols, header])
+  }, [source, json, table, cols, header, picked])
 
   const rows = useMemo(() => markDuplicates(parsedRows, existingKeys), [parsedRows, existingKeys])
   const counts = { ok: 0, error: 0, dup: 0 }
   rows.forEach((r) => counts[r.status]++)
   const toImport = cardsToImport(rows, includeDup)
+  const imageImports = source === 'json' ? imagesToImport(rows) : []
   const shown = (onlyProblems ? rows.filter((r) => r.status !== 'ok') : rows).slice(0, PREVIEW_LIMIT)
 
   const deckNameForNew = newDeckName.trim() || json?.deckName || 'חפיסה מיובאת'
@@ -103,13 +115,26 @@ export function ImportPage() {
     setCsvText(await file.text())
   }
 
+  const pickJsonFiles = async (files: File[]) => {
+    if (!files.length) return
+    const next = await readPickedFiles(files, picked ?? undefined)
+    setPicked(next)
+    if (next.json && next.json !== picked?.json) setJsonText(next.json.text)
+    if (next.problems.length) showToast(next.problems.slice(0, 2).join(' · '))
+  }
+
   const runImport = async () => {
-    if (!toImport.length) return
+    if (!toImport.length && !imageImports.length) return
     setBusy(true)
     try {
       const deckId = isNewDeck ? await createDeck({ name: deckNameForNew, examDate: null, examLabel: null }) : effectiveTarget
-      await addCards(deckId, toImport as NewCard[])
-      navigate(`/deck/${deckId}`)
+      if (toImport.length) await addCards(deckId, toImport as NewCard[])
+      if (!imageImports.length) return navigate(`/deck/${deckId}`)
+      // Every imported image is reviewed before its cards are saved.
+      const items = imageImports.map((im) =>
+        queueItem(im.file, picked!.images.get(imageKey(im.file))!, { wanted: im.masks, mode: im.mode, tags: im.tags, prompt: im.prompt }),
+      )
+      setReview({ deckId, items, done: false })
     } finally {
       setBusy(false)
     }
@@ -125,6 +150,31 @@ export function ImportPage() {
   }
 
   if (decksLoading) return <Spinner label="טוען…" />
+
+  if (review) {
+    const toDeck = () => navigate(`/deck/${review.deckId}`, { replace: true })
+    if (review.done) {
+      return (
+        <div className="stack" style={{ minHeight: '100dvh' }}>
+          <QueueDone items={review.items} onDone={toDeck} />
+          {toImport.length > 0 && (
+            <div className="faint" style={{ textAlign: 'center', fontSize: 13.5 }}>
+              ועוד {n(toImport.length)} כרטיסי טקסט מהייבוא
+            </div>
+          )}
+        </div>
+      )
+    }
+    return (
+      <ImageQueue
+        deckId={review.deckId}
+        items={review.items}
+        setItems={(fn) => setReview((r) => (r ? { ...r, items: fn(r.items) } : r))}
+        onExit={toDeck}
+        onFinish={() => setReview((r) => (r ? { ...r, done: true } : r))}
+      />
+    )
+  }
 
   /* ─────────── Pieces ─────────── */
 
@@ -157,6 +207,30 @@ export function ImportPage() {
         <Button size="sm" variant="soft" onClick={copyPrompt}>
           העתקת הפרומפט ל-Claude
         </Button>
+      </div>
+      <input
+        ref={jsonFilesRef}
+        type="file"
+        multiple
+        hidden
+        accept=".json,.zip,application/json,application/zip,image/png,image/jpeg,image/webp,image/gif"
+        onChange={(e) => {
+          void pickJsonFiles([...(e.target.files ?? [])])
+          e.target.value = ''
+        }}
+      />
+      <div className="row" style={{ gap: 10, flexWrap: 'wrap' }}>
+        <Button size="sm" icon="upload" onClick={() => jsonFilesRef.current?.click()}>
+          בחירת קבצים: JSON ותמונות, או ZIP
+        </Button>
+        {picked && (
+          <span className="faint" style={{ fontSize: 13 }}>
+            {picked.json ? <bdi dir="ltr">{picked.json.name}</bdi> : 'בלי JSON'} · {n(picked.images.size)} תמונות
+            <button type="button" className="link-btn" style={{ marginInlineStart: 8, color: 'var(--accent)' }} onClick={() => setPicked(null)}>
+              ניקוי
+            </button>
+          </span>
+        )}
       </div>
       <textarea
         className="textarea textarea--code"
@@ -332,8 +406,17 @@ export function ImportPage() {
         </Checkbox>
       )}
       {counts.error > 0 && <div className="faint" style={{ fontSize: 13 }}>שורות עם שגיאות לא ייובאו.</div>}
-      <Button variant="primary" size="lg" block disabled={!toImport.length || busy} onClick={runImport}>
-        {busy ? 'מייבא…' : toImport.length ? `ייבא ${n(toImport.length)} כרטיסים` : 'אין כרטיסים לייבוא'}
+      {imageImports.length > 0 && (
+        <div className="faint" style={{ fontSize: 13 }}>
+          כרטיסי תמונה עוברים קודם למסך סקירה: הזיהוי מוצא איפה כל תווית בתמונה, ואתם מאשרים.
+        </div>
+      )}
+      <Button variant="primary" size="lg" block disabled={(!toImport.length && !imageImports.length) || busy} onClick={runImport}>
+        {busy
+          ? 'מייבא…'
+          : !toImport.length && !imageImports.length
+            ? 'אין כרטיסים לייבוא'
+            : [toImport.length && `ייבא ${n(toImport.length)} כרטיסים`, imageImports.length && `סקירת ${n(imageImports.length)} תמונות`].filter(Boolean).join(' ו')}
       </Button>
     </div>
   )
