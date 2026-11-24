@@ -1,3 +1,4 @@
+import type { MouseEvent } from 'react'
 import { Link } from 'react-router-dom'
 import { isLeech, type Card } from '../lib/types'
 import { RichText } from './RichText'
@@ -29,12 +30,28 @@ export function CardTitle({ card }: { card: Card }) {
   }
 }
 
-export function CardRow({ deckId, card }: { deckId: string; card: Card }) {
-  return (
-    <Link to={cardEditPath(deckId, card)} className="list__row">
+interface RowProps {
+  deckId: string
+  card: Card
+  /** Set while the list is in select mode: the row toggles instead of opening the editor. */
+  selected?: boolean
+  onToggle?: (e: MouseEvent) => void
+}
+
+export function CardRow({ deckId, card, selected, onToggle }: RowProps) {
+  const selecting = onToggle !== undefined
+  const body = (
+    <>
       <div className="card-row__main stack" style={{ flex: 1, minWidth: 0, gap: 4 }}>
-        <div className="card-row__front ellipsis">
-          <CardTitle card={card} />
+        <div className={`card-row__front ${selecting ? 'card-row__front--select' : 'ellipsis'}`}>
+          {selecting && (
+            <span className="checkbox__box" aria-hidden="true">
+              {selected ? '✓' : ''}
+            </span>
+          )}
+          <span className={selecting ? 'ellipsis' : undefined}>
+            <CardTitle card={card} />
+          </span>
         </div>
         <div className="card-row__meta">
           <span>
@@ -52,6 +69,24 @@ export function CardRow({ deckId, card }: { deckId: string; card: Card }) {
         </div>
       </div>
       <MasteryMeter level={card.mastery} />
+    </>
+  )
+  if (selecting) {
+    return (
+      <button
+        type="button"
+        role="checkbox"
+        aria-checked={!!selected}
+        className="list__row list__row--select"
+        onClick={onToggle}
+      >
+        {body}
+      </button>
+    )
+  }
+  return (
+    <Link to={cardEditPath(deckId, card)} className="list__row">
+      {body}
     </Link>
   )
 }

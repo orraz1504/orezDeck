@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { CardRow } from '../components/CardRow'
 import { DeckFormSheet } from '../components/DeckFormSheet'
@@ -15,8 +15,9 @@ import {
   SearchField,
   Segmented,
   Spinner,
+  useToast,
 } from '../components/ui'
-import { deleteDeck, useCards, useDeck } from '../data/store'
+import { deleteCards, deleteDeck, deleteImages, useCards, useDeck } from '../data/store'
 import { clozePlain } from '../lib/cloze'
 import { examSummary, formatEpoch, n } from '../lib/format'
 import { planSession } from '../lib/scheduler'
@@ -49,6 +50,11 @@ export function DeckPage() {
   const [tag, setTag] = useState<string | null>(null)
   const [limit, setLimit] = useState(PAGE)
   const [editing, setEditing] = useState(false)
+  // Select mode: null = off; otherwise the ids of the ticked cards.
+  const [selected, setSelected] = useState<Set<string> | null>(null)
+  const lastToggled = useRef<number | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [toast, showToast] = useToast()
 
   const round = deck?.roundNumber ?? 1
   const stats = useMemo(() => deckStats(cards, round), [cards, round])
@@ -84,6 +90,20 @@ export function DeckPage() {
     })
   }, [cards, query, tag])
 
+  const selecting = selected !== null
+  useEffect(() => {
+    if (!selecting) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setSelected(null)
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selecting])
+
+  // Ticked cards that still exist (one may be deleted on another device meanwhile).
+  const selectedCards = useMemo(() => (selected ? cards.filter((c) => selected.has(c.id)) : []), [cards, selected])
+  const allFilteredSelected = !!selected && filtered.length > 0 && filtered.every((c) => selected.has(c.id))
+
   if (loading) return <Spinner label="טוען…" />
   if (!deck || !deckId) {
     return (
@@ -105,6 +125,81 @@ export function DeckPage() {
     navigate('/', { replace: true })
   }
 
+  const startSelect = () => {
+    lastToggled.current = null
+    setSelected(new Set())
+  }
+
+  // Shift+click ticks the whole range from the previous click, like a file list.
+  const toggle = (index: number, e: MouseEvent) => {
+    const last = lastToggled.current
+    lastToggled.current = index
+    setSelected((prev) => {
+      const next = new Set(prev)
+      const on = !next.has(filtered[index].id)
+      const range = e.shiftKey && last !== null ? filtered.slice(Math.min(last, index), Math.max(last, index) + 1) : [filtered[index]]
+      for (const c of range) {
+        if (on) next.add(c.id)
+        else next.delete(c.id)
+      }
+      return next
+    })
+  }
+
+  const toggleAll = () => {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      for (const c of filtered) {
+        if (allFilteredSelected) next.delete(c.id)
+        else next.add(c.id)
+      }
+      return next
+    })
+  }
+
+  const onDeleteSelected = async () => {
+    const doomed = selectedCards
+    if (!doomed.length) return
+    const msg = doomed.length === 1 ? 'למחוק את הכרטיס הנבחר? אי אפשר לבטל.' : `למחוק ${n(doomed.length)} כרטיסים? אי אפשר לבטל.`
+    if (!confirm(msg)) return
+    setDeleting(true)
+    try {
+      const ids = new Set(doomed.map((c) => c.id))
+      await deleteCards(deckId, [...ids])
+      // Occlusion siblings share one image: drop it only once no remaining card uses it.
+      const stillUsed = new Set(cards.filter((c) => !ids.has(c.id)).map((c) => c.imageId))
+      deleteImages(doomed.map((c) => c.imageId).filter((id) => !stillUsed.has(id)))
+      setSelected(null)
+      showToast(doomed.length === 1 ? 'הכרטיס נמחק' : `נמחקו ${n(doomed.length)} כרטיסים`)
+    } finally {
+      setDeleting(false)
+    }
+  }
+
+  const selectButton = cards.length > 0 && (
+    <Button size="sm" variant={selecting ? 'soft' : 'secondary'} onClick={selecting ? () => setSelected(null) : startSelect}>
+      {selecting ? 'סיום בחירה' : 'בחירה'}
+    </Button>
+  )
+
+  const selectBar = selecting && (
+    <div className="select-bar" role="toolbar" aria-label="פעולות על הכרטיסים שנבחרו">
+      <span style={{ fontSize: 14, fontWeight: 600 }}>
+        {selectedCards.length ? `${n(selectedCards.length)} נבחרו` : 'בחרו כרטיסים'}
+      </span>
+      <button type="button" className="link-btn" style={{ color: 'var(--accent)', fontSize: 14 }} onClick={toggleAll} disabled={filtered.length === 0}>
+        {allFilteredSelected ? 'ניקוי' : `בחירת הכל (${n(filtered.length)})`}
+      </button>
+      <span className="spacer" />
+      <Button size="sm" variant="ghost" onClick={() => setSelected(null)}>
+        ביטול
+      </Button>
+      <Button size="sm" variant="danger" onClick={onDeleteSelected} disabled={!selectedCards.length || deleting}>
+        מחיקה
+      </Button>
+    </div>
+  )
+
   const menu = (
     <Menu
       trigger={(open) => <IconButton icon="dots" label="אפשרויות" onClick={open} />}
@@ -113,6 +208,7 @@ export function DeckPage() {
         { label: 'ייבוא כרטיסים', to: `/deck/${deckId}/import` },
         { label: 'כרטיס הסתרת תמונה', to: `/deck/${deckId}/occlusion/new` },
         { label: 'הסתרת תמונות אוטומטית', to: `/deck/${deckId}/auto-occlusion` },
+        ...(cards.length > 0 ? [{ label: 'בחירת כרטיסים למחיקה', onClick: startSelect }] : []),
         { label: 'מחיקת החפיסה', onClick: onDelete, danger: true },
       ]}
     />
@@ -173,6 +269,7 @@ export function DeckPage() {
     <div className="page-head mobile-only" style={{ paddingTop: 8 }}>
       <div className="section-title">כרטיסים</div>
       <div className="row" style={{ gap: 8 }}>
+        {selectButton}
         <Button size="sm" to={`/deck/${deckId}/import`}>
           ייבוא
         </Button>
@@ -220,6 +317,7 @@ export function DeckPage() {
             <div style={{ flex: 1 }}>
               <SearchField value={query} onChange={setQuery} />
             </div>
+            {selectButton}
           </div>
           <div style={{ padding: '10px 14px', borderBottom: '1px solid var(--line)' }}>{filters}</div>
           <div className="card-table__head">
@@ -234,8 +332,14 @@ export function DeckPage() {
             אין כרטיסים שמתאימים לחיפוש
           </div>
         )}
-        {filtered.slice(0, limit).map((c) => (
-          <CardRow key={c.id} deckId={deckId} card={c} />
+        {filtered.slice(0, limit).map((c, i) => (
+          <CardRow
+            key={c.id}
+            deckId={deckId}
+            card={c}
+            selected={selected?.has(c.id)}
+            onToggle={selecting ? (e) => toggle(i, e) : undefined}
+          />
         ))}
         {filtered.length > limit && (
           <button type="button" className="list__row" style={{ justifyContent: 'center', color: 'var(--accent)' }} onClick={() => setLimit((l) => l + PAGE)}>
@@ -337,6 +441,7 @@ export function DeckPage() {
               )}
             </div>
             {list}
+            {selectBar}
           </div>
 
           {/* Desktop side column */}
@@ -369,6 +474,7 @@ export function DeckPage() {
         </div>
       </div>
 
+      {toast}
       {editing && <DeckFormSheet deck={deck} onClose={() => setEditing(false)} />}
     </>
   )
