@@ -1776,3 +1776,12 @@ math-field.math-editor__field {
   overflow-y: auto;
   background: var(--bg);
 }
+
+/* Desktop: a tall image fits the screen (no scrolling to see it all); the zoom button
+   still opens it full size. 380px ≈ the study bar, card header, label and rating buttons. */
+@media (min-width: 960px) {
+  .occ-fit {
+    width: min(100%, calc((100dvh - 380px) * var(--aspect, 1)));
+    margin-inline: auto;
+  }
+}

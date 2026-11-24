@@ -88,7 +88,7 @@ function ImageFace({ card, revealed }: { card: Card; revealed: boolean }) {
         <span dir="auto">{card.prompt || 'מה המבנה המסומן?'}</span>
         <span style={{ color: 'var(--hard)' }}>{MODE_LABEL[mode]}</span>
       </div>
-      <div className="occ-zoomable">
+      <div className="occ-zoomable occ-fit" style={{ '--aspect': aspect } as CSSProperties}>
         {image}
         {img.src && (
           <button type="button" className="occ-zoom-btn" aria-label="הגדלת התמונה" onClick={() => setZoom(true)}>

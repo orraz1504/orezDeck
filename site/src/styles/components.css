@@ -210,6 +210,22 @@
   scrollbar-width: none;
 }
 
+/* Desktop: drag with the mouse to scroll the row (useDragScroll). */
+@media (pointer: fine) {
+  .chip-row {
+    cursor: grab;
+  }
+
+  .chip-row.is-dragging {
+    cursor: grabbing;
+    user-select: none;
+  }
+
+  .chip-row.is-dragging .chip {
+    cursor: grabbing;
+  }
+}
+
 .chip-row::-webkit-scrollbar {
   display: none;
 }
@@ -532,6 +548,17 @@
   outline: none;
 }
 
+/* Phones give date / time inputs an intrinsic minimum width; let them shrink to the column. */
+input.input[type='date'],
+input.input[type='time'] {
+  min-width: 0;
+  max-width: 100%;
+  display: block;
+  -webkit-appearance: none;
+  appearance: none;
+  line-height: var(--h-md);
+}
+
 .textarea {
   padding: 12px;
   line-height: 1.7;
@@ -839,6 +866,7 @@ button.list__row:hover {
 .sheet {
   background: var(--bg);
   width: 100%;
+  overflow-x: hidden;
   max-width: 520px;
   border-radius: 22px 22px 0 0;
   padding: 20px 16px calc(24px + var(--safe-bottom));

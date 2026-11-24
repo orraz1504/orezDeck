@@ -44,19 +44,19 @@ export function DeckFormSheet({ deck, onClose }: { deck?: Deck; onClose: () => v
           />
         </Field>
         <div className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <Field label="תאריך מבחן (לא חובה)">
               <input className="input" type="date" value={examDate} onChange={(e) => setExamDate(e.target.value)} />
             </Field>
           </div>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <Field label="שעה (לא חובה)">
               <input className="input" type="time" value={examTime} disabled={!examDate} onChange={(e) => setExamTime(e.target.value)} />
             </Field>
           </div>
         </div>
         <div className="row" style={{ gap: 10, alignItems: 'flex-start' }}>
-          <div style={{ flex: 1 }}>
+          <div style={{ flex: 1, minWidth: 0 }}>
             <Field label="מועד (לא חובה)">
               <input className="input" dir="auto" enterKeyHint="done" autoComplete="off" value={examLabel} onChange={(e) => setExamLabel(e.target.value)} placeholder="מועד א'" />
             </Field>

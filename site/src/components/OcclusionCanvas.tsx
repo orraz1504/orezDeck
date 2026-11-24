@@ -94,6 +94,23 @@ export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelec
     return { x: e.clientX - r.left, y: e.clientY - r.top }
   }
 
+  // A finger lifted outside the image (or a gesture the browser took over) never reaches the
+  // frame's pointerup, so it would stay "down" forever: every later touch would then count as
+  // a second finger and turn into a pinch, and boxes could no longer be moved or resized.
+  // Forget pointers wherever they end.
+  useEffect(() => {
+    const end = (e: PointerEvent) => {
+      pointers.current.delete(e.pointerId)
+      if (pointers.current.size < 2) pinch.current = null
+    }
+    window.addEventListener('pointerup', end)
+    window.addEventListener('pointercancel', end)
+    return () => {
+      window.removeEventListener('pointerup', end)
+      window.removeEventListener('pointercancel', end)
+    }
+  }, [])
+
   // Ctrl + wheel (and trackpad pinch, which the browser reports as Ctrl + wheel) zooms.
   useEffect(() => {
     const f = frameRef.current
@@ -171,6 +188,11 @@ export function OcclusionCanvas({ src, width, height, masks, selectedId, onSelec
   /* ── Pinch: tracked on the frame for every pointer, before the per-element handlers. ── */
   const onPointerDownCapture = (e: ReactPointerEvent) => {
     if (e.pointerType !== 'touch') return
+    // The first finger of a new gesture: nothing else can be down, so drop any leftovers.
+    if (e.isPrimary) {
+      pointers.current.clear()
+      pinch.current = null
+    }
     pointers.current.set(e.pointerId, { x: e.clientX, y: e.clientY })
     if (pointers.current.size === 2) {
       // Second finger: cancel the current drag (drop a half-drawn rectangle) and start zooming.

@@ -20,6 +20,7 @@ import { deleteDeck, useCards, useDeck } from '../data/store'
 import { clozePlain } from '../lib/cloze'
 import { examSummary, formatEpoch, n } from '../lib/format'
 import { planSession } from '../lib/scheduler'
+import { useDragScroll } from '../lib/useDragScroll'
 import { deckStats } from '../lib/stats'
 import { examInfo, perDayToFinishRound } from '../lib/effective'
 import { isLeech, type Card, type SessionSize, type StudyMode } from '../lib/types'
@@ -36,6 +37,7 @@ function searchable(c: Card): string {
 }
 
 export function DeckPage() {
+  const chipRowRef = useDragScroll<HTMLDivElement>()
   const { deckId } = useParams()
   const navigate = useNavigate()
   const { deck, loading } = useDeck(deckId)
@@ -182,7 +184,7 @@ export function DeckPage() {
   )
 
   const filters = (
-    <div className="chip-row">
+    <div className="chip-row" ref={chipRowRef}>
       <Chip active={tag === null} onClick={() => setTag(null)}>
         הכל
       </Chip>
